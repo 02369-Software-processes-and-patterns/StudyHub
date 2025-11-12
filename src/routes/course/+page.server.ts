@@ -29,6 +29,7 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 	};
 };
 
+// Adding a new course action
 export const actions: Actions = {
 	addCourse: async ({ request, locals: { supabase, safeGetSession } }) => {
 		const { session } = await safeGetSession();

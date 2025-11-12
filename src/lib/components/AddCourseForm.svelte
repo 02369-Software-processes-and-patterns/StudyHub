@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
 	import { enhance } from '$app/forms';
+	import { createEventDispatcher } from 'svelte';
+
+	const dispatch = createEventDispatcher();
 
 	export let showModal = false;
 
-	const dispatch = createEventDispatcher();
 
 	let name = '';
 	let ects_points = '';
