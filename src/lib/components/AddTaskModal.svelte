@@ -1,5 +1,6 @@
 <script lang="ts">
     import { createEventDispatcher } from 'svelte';
+    import { enhance } from '$app/forms';
 
     export let isOpen = false;
     export let courses: Array<{ id: string; name: string }> = [];
@@ -13,39 +14,21 @@
         deadline: ''
     };
 
+    let errorMessage = '';
+
     function closeModal() {
         isOpen = false;
+        errorMessage = '';
         dispatch('close');
     }
 
-    async function handleSubmit() {
-        try {
-            const response = await fetch('/Task', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(formData)
-            });
-
-            if (response.ok) {
-                dispatch('taskAdded');
-                closeModal();
-                // Reset form
-                formData = {
-                    name: '',
-                    effort_hours: 0,
-                    course_id: '',
-                    deadline: ''
-                };
-            } else {
-                const error = await response.json();
-                alert('Error creating task: ' + error.message);
-            }
-        } catch (error) {
-            console.error('Error submitting task:', error);
-            alert('Failed to create task');
-        }
+    function resetForm() {
+        formData = {
+            name: '',
+            effort_hours: 0,
+            course_id: '',
+            deadline: ''
+        };
     }
 </script>
 
@@ -63,13 +46,42 @@
                 </button>
             </div>
 
-            <form on:submit|preventDefault={handleSubmit} class="space-y-4">
+            {#if errorMessage}
+                <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                    Error creating task: {errorMessage}
+                    <button 
+                        on:click={() => errorMessage = ''}
+                        class="float-right text-red-700 hover:text-red-900"
+                    >
+                        Close
+                    </button>
+                </div>
+            {/if}
+
+            <form 
+                method="POST" 
+                action="/Task"
+                use:enhance={({ cancel }) => {
+                    return async ({ result, update }) => {
+                        if (result.type === 'success') {
+                            dispatch('taskAdded');
+                            closeModal();
+                            resetForm();
+                        } else if (result.type === 'failure') {
+                            errorMessage = result.data?.error || 'Unknown error';
+                        }
+                        await update();
+                    };
+                }}
+                class="space-y-4"
+            >
                 <div>
                     <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
                         Task Name
                     </label>
                     <input
                         id="name"
+                        name="name"
                         type="text"
                         bind:value={formData.name}
                         required
@@ -84,6 +96,7 @@
                     </label>
                     <input
                         id="effort_hours"
+                        name="effort_hours"
                         type="number"
                         min="0"
                         step="0.5"
@@ -100,11 +113,11 @@
                     </label>
                     <select
                         id="course_id"
+                        name="course_id"
                         bind:value={formData.course_id}
-                        required
                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                        <option value="" disabled>Select a course</option>
+                        <option value="">None (optional)</option>
                         {#each courses as course}
                             <option value={course.id}>{course.name}</option>
                         {/each}
@@ -117,6 +130,7 @@
                     </label>
                     <input
                         id="deadline"
+                        name="deadline"
                         type="datetime-local"
                         bind:value={formData.deadline}
                         required

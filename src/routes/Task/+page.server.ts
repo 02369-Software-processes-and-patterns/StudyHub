@@ -7,10 +7,13 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
         return { tasks: [], courses: [] };
     }
 
-    // Fetch tasks
+    // Fetch tasks with course names
     const { data: tasks, error: tasksError } = await supabase
         .from('tasks')
-        .select('*')
+        .select(`
+            *,
+            course:courses(id, name)
+        `)
         .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
 
@@ -38,18 +41,29 @@ export const actions: Actions = {
             return { success: false, error: 'Not authenticated' };
         }
 
-        const formData = await request.json();
+        const formData = await request.formData();
+        
+        const name = formData.get('name')?.toString();
+        const effort_hours = formData.get('effort_hours')?.toString();
+        const course_id = formData.get('course_id')?.toString();
+        const deadline = formData.get('deadline')?.toString();
+
+        // Validate required fields
+        if (!name || !effort_hours || !deadline) {
+            return { success: false, error: 'Missing required fields' };
+        }
 
         const { error } = await supabase.from('tasks').insert({
             user_id: session.user.id,
-            name: formData.name,
-            effort_hours: formData.effort_hours,
-            course_id: formData.course_id,
-            deadline: formData.deadline,
+            name: name,
+            effort_hours: parseFloat(effort_hours),
+            course_id: course_id || null,
+            deadline: deadline,
             status: 'pending'
         });
 
         if (error) {
+            console.error('Supabase error:', error);
             return { success: false, error: error.message };
         }
 

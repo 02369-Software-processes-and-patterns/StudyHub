@@ -46,7 +46,9 @@
                     {#each data.tasks as task}
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{task.name}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{task.course_id}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {task.course?.name ?? 'No course'}
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{task.effort_hours}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(task.deadline).toLocaleDateString()}</td>
                             <td class="px-6 py-4 whitespace-nowrap">
