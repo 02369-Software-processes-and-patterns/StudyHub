@@ -14,7 +14,7 @@
 	const navButtons = [
 		{ label: 'My dashboard', href: '/dashboard' },
 		{ label: 'My Workload', href: '/workload' },
-		{ label: 'My tasks', href: '/tasks' }
+		{ label: 'My tasks', href: '/Task' }
 	];
 
     // Get user name from authenticated user object - stored in identity_data as JSONB
