@@ -1,0 +1,16 @@
+# Check if we're on main branch and prevent direct commits
+branch=$(git rev-parse --abbrev-ref HEAD)
+if [ "$branch" = "main" ]; then
+  echo "🚫 Direct commits to main branch are not allowed!"
+  echo "Please create a feature branch and submit a pull request."
+  echo ""
+  echo "To create a feature branch:"
+  echo "  git checkout -b feature/your-feature-name"
+  echo "  git add ."
+  echo "  git commit -m 'Your commit message'"
+  echo "  git push -u origin feature/your-feature-name"
+  echo ""
+  exit 1
+fi
+
+npx lint-staged
