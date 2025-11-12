@@ -6,7 +6,6 @@
 
 	export let showModal = false;
 
-
 	let name = '';
 	let ects_points = '';
 	let start_date = '';
@@ -16,11 +15,11 @@
 	let error = '';
 
 	const weekdays = [
-		{ label: 'Man', value: 1 },
-		{ label: 'Tir', value: 2 },
-		{ label: 'Ons', value: 3 },
-		{ label: 'Tor', value: 4 },
-		{ label: 'Fre', value: 5 }
+		{ label: 'Mon', value: 1 },
+		{ label: 'Tue', value: 2 },
+		{ label: 'Wed', value: 3 },
+		{ label: 'Thu', value: 4 },
+		{ label: 'Fri', value: 5 }
 	];
 
 	function toggleWeekday(day: number) {
@@ -51,7 +50,7 @@
 			class="bg-white rounded-lg shadow-2xl max-w-md w-96 border border-gray-200"
 		>
 			<div class="flex items-center justify-between p-6 border-b border-gray-200">
-				<h2 class="text-2xl font-bold text-gray-900">Tilføj Nyt Kursus</h2>
+				<h2 class="text-2xl font-bold text-gray-900">Add New Course</h2>
 				<button 
 					on:click={closeModal}
 					class="text-gray-400 hover:text-gray-600 text-3xl leading-none"
@@ -70,7 +69,7 @@
 							closeModal();
 							dispatch('courseAdded');
 						} else if (result.type === 'failure') {
-							error = result.data?.error || 'Der opstod en fejl';
+							error = result.data?.error || 'An error occurred';
 						}
 						loading = false;
 						await update();
@@ -80,14 +79,14 @@
 			>
 				{#if error}
 					<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-						Fejl: {error}
+						Error: {error}
 					</div>
 				{/if}
 
 				<input type="hidden" name="lecture_weekdays" value={JSON.stringify(selectedWeekdays)} />
 
 				<label class="block">
-					<span class="text-gray-700 font-medium">Kursusnavn *</span>
+					<span class="text-gray-700 font-medium">Course Name *</span>
 					<input 
 						type="text" 
 						name="name"
@@ -99,7 +98,7 @@
 				</label>
 
 				<label class="block">
-					<span class="text-gray-700 font-medium">ECTS Point *</span>
+					<span class="text-gray-700 font-medium">ECTS Points *</span>
 					<input 
 						type="number" 
 						name="ects_points"
@@ -114,7 +113,7 @@
 
 				<div class="grid grid-cols-2 gap-4">
 					<label class="block">
-						<span class="text-gray-700 font-medium">Startdato</span>
+						<span class="text-gray-700 font-medium">Start Date</span>
 						<input 
 							type="date" 
 							name="start_date"
@@ -125,7 +124,7 @@
 					</label>
 
 					<label class="block">
-						<span class="text-gray-700 font-medium">Slutdato</span>
+						<span class="text-gray-700 font-medium">End Date</span>
 						<input 
 							type="date" 
 							name="end_date"
@@ -137,7 +136,7 @@
 				</div>
 
 				<div>
-					<p class="text-gray-700 font-medium mb-2">Forelæsningsdage</p>
+					<p class="text-gray-700 font-medium mb-2">Lecture days</p>
 					<div class="flex flex-wrap gap-2">
 						{#each weekdays as day}
 							<label class="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 transition">
@@ -161,14 +160,14 @@
 						disabled={loading}
 						class="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
 					>
-						Annuller
+						Cancel
 					</button>
 					<button 
 						type="submit" 
 						disabled={loading}
 						class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
 					>
-						{loading ? 'Opretter...' : 'Opret Kursus'}
+						{loading ? 'Creating...' : 'Create Course'}
 					</button>
 				</div>
 			</form>

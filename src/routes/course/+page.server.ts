@@ -35,7 +35,7 @@ export const actions: Actions = {
 		const { session } = await safeGetSession();
 
 		if (!session) {
-			return fail(401, { error: 'Ikke logget ind' });
+			return fail(401, { error: 'Not authenticated' });
 		}
 
 		const formData = await request.formData();

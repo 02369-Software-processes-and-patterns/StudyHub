@@ -8,16 +8,16 @@
 			<thead class="bg-gray-50">
 				<tr>
 					<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-						Kursusnavn
-					</th>
-					<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+							Course Name
+						</th>
+						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 						ECTS
 					</th>
-					<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-						Startdato
+						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+						Start Date
 					</th>
-					<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-						Slutdato
+						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+						End Date
 					</th>
 				</tr>
 			</thead>
@@ -44,7 +44,7 @@
 {:else}
 	<div class="bg-white rounded-lg shadow p-12 text-center">
 		<div class="text-6xl mb-4">📚</div>
-		<h2 class="text-2xl font-bold text-gray-900 mb-2">Ingen kurser endnu</h2>
-		<p class="text-gray-600">Kom i gang med at tilføje dit første kursus for at holde styr på din arbejdsbyrde.</p>
+		<h2 class="text-2xl font-bold text-gray-900 mb-2">No courses yet</h2>
+		<p class="text-gray-600">Get started by adding your first course to track your workload.</p>
 	</div>
 {/if}
