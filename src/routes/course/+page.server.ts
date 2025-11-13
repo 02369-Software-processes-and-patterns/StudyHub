@@ -59,6 +59,8 @@ export const actions: Actions = {
 			return fail(400, { error: 'Missing required fields' });
 		}
 
+
+		//ændre constants to correct types t
 		const ects_points = Number(ects_points_str);
 		const start_date = new Date(start_date_str);
 		const end_date = new Date(end_date_str);
@@ -90,8 +92,11 @@ export const actions: Actions = {
 			const { lectureHours, assignmentHours } = convertEctsToWeeklyHours(ects_points);
 
 			const tasksToInsert = [];
+
 			let currentDate = new Date(start_date);
-			
+			let taskIdCounter = 1;
+
+			// Loop gennem datoer og opret opgaver på de angivne ugedage
 			while (currentDate <= end_date) {
 				const dayOfWeek = currentDate.getDay();
 
@@ -103,7 +108,7 @@ export const actions: Actions = {
 					tasksToInsert.push({
 						user_id : session.user.id,
 						course_id : newCourse.id,
-						name : 'Lecture',
+						name : 'Lecture ' + taskIdCounter,
 						effort_hours : lectureHours,
 						deadline : deadline.toISOString(),
 						status : 'pending'
@@ -112,7 +117,7 @@ export const actions: Actions = {
 					tasksToInsert.push({
 						user_id : session.user.id,
 						course_id : newCourse.id,
-						name : 'Assignment',
+						name : 'Assignment ' + taskIdCounter,
 						effort_hours : assignmentHours,
 						deadline : deadline.toISOString(),
 						status : 'pending'
@@ -121,6 +126,7 @@ export const actions: Actions = {
 					
 				currentDate.setDate(currentDate.getDate() + 1);
 
+				taskIdCounter++;
 			}
 
 			//insert all tasks in database
@@ -139,8 +145,8 @@ export const actions: Actions = {
 		// Fejl i logikken (f.eks. date parsing)
 		}
 
-		
+
 		return { success: true };
 		
 	}
-};
+};	
