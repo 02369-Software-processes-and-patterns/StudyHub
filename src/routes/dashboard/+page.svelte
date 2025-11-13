@@ -1,6 +1,8 @@
 <script>
 	import Taskbar from '$lib/components/Taskbar.svelte';
 	import { goto } from '$app/navigation';
+
+	export let data;
 </script>
 
 <div class="container mx-auto max-w-6xl px-4 py-12">
@@ -18,7 +20,7 @@
 
 	<!-- Task Bar -->
 	<div class="mb-16">
-		<Taskbar maxTasks={6} />
+		<Taskbar tasks={data.tasks} maxTasks={6} />
 	</div>
 
 	<!-- Feature Cards -->
