@@ -60,7 +60,7 @@
 
             <form 
                 method="POST" 
-                action="/Task"
+                action="/tasks"
                 use:enhance={({ cancel }) => {
                     return async ({ result, update }) => {
                         if (result.type === 'success') {
@@ -68,8 +68,10 @@
                             closeModal();
                             resetForm();
                         } else if (result.type === 'failure') {
-                            errorMessage = result.data?.error || 'Unknown error';
-                        }
+							type FailureData = { message?: string };
+							const msg = (result.data as FailureData | undefined)?.message ?? 'Unknown error';
+							errorMessage = msg;
+						}
                         await update();
                     };
                 }}

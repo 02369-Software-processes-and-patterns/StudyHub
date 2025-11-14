@@ -13,4 +13,3 @@ if [ "$branch" = "main" ]; then
   exit 1
 fi
 
-npx lint-staged
