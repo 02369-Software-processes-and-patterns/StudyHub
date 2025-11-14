@@ -47,7 +47,7 @@
 	}
 }} />
 
-<header class="w-full bg-white border-b border-gray-200 shadow-sm">
+<header class="w-full bg-white border-b border-gray-200 shadow-sm relative">
 	{#if session}
 		<!-- Signed In View -->
 		<nav class="flex justify-between items-center px-4 md:px-8 py-3">
@@ -111,7 +111,7 @@
 
 		<!-- Mobile Menu -->
 		{#if mobileMenuOpen}
-			<div class="md:hidden border-t border-gray-200 bg-white">
+			<div class="absolute left-0 right-0 top-full md:hidden border-t border-gray-200 bg-white shadow-lg z-40">
 				<div class="flex flex-col py-2 px-4 gap-2">
 					{#each navButtons as button}
 						<a 
