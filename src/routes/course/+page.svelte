@@ -1,7 +1,7 @@
 <script lang="ts">
     import { invalidateAll } from '$app/navigation';
-    import AddCourseForm from '$lib/components/AddCourseForm.svelte'; // importerer komponent til at tilføje et nyt kursus
-    import CourseList from '$lib/components/CourseList.svelte'; // importerer komponent til at vise listen af kurser
+    import AddCourseForm from '$lib/components/modal/AddCourseModal.svelte'; // importerer komponent til at tilføje et nyt kursus
+    import CourseList from '$lib/components/list/CourseList.svelte'; // importerer komponent til at vise listen af kurser
     import type { PageData } from './$types';
     import { onMount } from 'svelte';
 
@@ -34,24 +34,69 @@
         (sum, course) => sum + (Number(course.ects_points) ?? 0), 
         0
     ) ?? 0;
+
+	$: totalCourses = data.courses?.length ?? 0;
+
+	$: activeCourses = data.courses?.filter((c) => {
+		if (!c.end_date) return true;
+		return new Date(c.end_date) >= new Date();
+	}).length ?? 0;
 </script>
 
-<div class="max-w-6xl mx-auto px-4 py-6 sm:py-8">
-	<div class="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between sm:mb-8">
-		<div>
-			<h1 class="text-2xl font-bold text-gray-900 sm:text-3xl">My Courses</h1>
-			<p class="text-sm text-gray-600 mt-1 sm:text-base">Manage your courses and track your workload</p>
-		</div>
-		<button 
-			on:click={() => (showAddCourseModal = true)}
-			class="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition shadow-md hover:shadow-lg sm:self-start"
-		>
-			<span class="text-xl">+</span>
-			Add Course
-		</button>
-	</div>
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+	<div class="mx-auto max-w-6xl">
+		<header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between md:mb-8">
+			<div>
+				<h1
+					class="mb-2 bg-gradient-to-r from-violet-600 to-blue-600 bg-clip-text text-2xl leading-tight font-bold text-transparent sm:text-3xl md:text-4xl md:mb-3"
+				>
+					My Courses
+				</h1>
+				<p class="text-sm text-gray-600 sm:text-base">Manage your courses and track your workload</p>
+			</div>
 
-	<CourseList courses={data.courses} />
+			<button
+				on:click={() => (showAddCourseModal = true)}
+				class="inline-flex items-center justify-center gap-3 rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 px-5 py-2 text-sm
+					   font-semibold text-white shadow-md transition-shadow duration-200 hover:shadow-lg sm:self-start"
+				aria-haspopup="dialog"
+			>
+				<span class="text-xl leading-none">+</span>
+				<span>Add Course</span>
+			</button>
+		</header>
+
+		<div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+			<div class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+				<p class="text-xs tracking-wide text-gray-500 uppercase">Total Courses</p>
+				<p class="mt-2 text-2xl font-bold text-gray-900">{totalCourses}</p>
+			</div>
+			<div class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+				<p class="text-xs tracking-wide text-gray-500 uppercase">Active Courses</p>
+				<p class="mt-2 text-2xl font-bold text-gray-900">{activeCourses}</p>
+			</div>
+			<div class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+				<p class="text-xs tracking-wide text-gray-500 uppercase">Total ECTS</p>
+				<p class="mt-2 text-2xl font-bold text-gray-900">{totalECTS}</p>
+			</div>
+		</div>
+
+		{#if data.courses && data.courses.length > 0}
+			<div class="space-y-3">
+				<CourseList courses={data.courses} />
+			</div>
+		{:else}
+			<div class="py-12 text-center">
+				<p class="mb-4 text-gray-500">You don't have any courses yet.</p>
+				<button
+					on:click={() => (showAddCourseModal = true)}
+					class="rounded-md bg-gradient-to-r from-violet-600 to-blue-600 px-4 py-2 font-semibold text-white shadow"
+				>
+					Add your first course
+				</button>
+			</div>
+		{/if}
+	</div>
 </div>
 
 <!-- Modal komponent (pop up vindue) til at tilføje kursus som er bindet til showAddCourseModal: -->

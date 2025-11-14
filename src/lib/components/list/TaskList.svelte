@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { goto } from '$app/navigation';
+	import ListCard from './ListCard.svelte';
+	import EmptyState from './EmptyState.svelte';
 
 	type TaskStatus = 'pending' | 'todo' | 'on-hold' | 'working' | 'completed';
 
@@ -32,7 +33,6 @@
 		.slice(0, maxTasks ?? tasks.length);
 
 	$: totalTasks = tasks.length;
-	$: hasMoreTasks = maxTasks !== null && totalTasks > maxTasks;
 
 	const statusOptions = [
 		{ value: 'pending', label: 'Pending' },
@@ -71,43 +71,51 @@
 		return task.status === 'completed';
 	}
 
+	function isWorkingTask(task: Task): boolean {
+		return task.status === 'working';
+	}
+
 	function getDeadlineClass(task: Task): string {
+		if (isOverdueTask(task) && isWorkingTask(task)) {
+			return 'text-orange-600 font-semibold';
+		}
 		if (isOverdueTask(task)) {
 			return 'text-red-600 font-semibold';
 		}
 		if (isCompletedTask(task)) {
 			return 'text-green-600 font-semibold';
 		}
+		if (isWorkingTask(task)) {
+			return 'text-yellow-600 font-semibold';
+		}
 		return 'text-gray-500';
 	}
 
 	function getRowClass(task: Task): string {
+		if (isOverdueTask(task) && isWorkingTask(task)) {
+			return 'bg-orange-50';
+		}
 		if (isOverdueTask(task)) {
 			return 'bg-red-50';
 		}
 		if (isCompletedTask(task)) {
 			return 'bg-green-50';
 		}
+		if (isWorkingTask(task)) {
+			return 'bg-yellow-50';
+		}
 		return '';
 	}
 </script>
 
 {#if sortedTasks.length > 0}
-	<div class="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-lg">
-		<div class="mb-4 flex flex-col gap-3 p-4 pb-0 sm:flex-row sm:items-center sm:justify-between sm:mb-6 sm:p-6">
-			<h2 class="text-xl font-bold text-gray-900 sm:text-2xl md:text-3xl">Upcoming Tasks</h2>
-			{#if showViewAll && hasMoreTasks}
-				<button
-					on:click={() => void goto('/tasks')}
-					class="inline-flex cursor-pointer items-center border-none bg-transparent text-sm font-semibold text-indigo-600 hover:text-indigo-700 sm:text-base"
-				>
-					View All ({totalTasks})
-					<svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-					</svg>
-				</button>
-			{/if}
-		</div>
+	<ListCard
+		title="Upcoming Tasks"
+		totalCount={totalTasks}
+		displayCount={sortedTasks.length}
+		{showViewAll}
+		viewAllUrl="/tasks"
+	>
 		<div class="overflow-x-auto">
 			<table class="min-w-full divide-y divide-gray-200">
 			<thead class="bg-gray-50">
@@ -133,7 +141,12 @@
 					<tr class="transition hover:bg-gray-50 {getRowClass(task)}">
 						<td class="px-2 py-2 text-xs sm:px-4 md:px-6 md:py-4">
 							<div class="font-semibold text-gray-900 sm:text-sm">
-								{#if isOverdueTask(task)}
+								{#if isOverdueTask(task) && isWorkingTask(task)}
+									<span class="inline-flex items-center gap-1">
+										<span class="text-orange-600">⚠️</span>
+										{task.name}
+									</span>
+								{:else if isOverdueTask(task)}
 									<span class="inline-flex items-center gap-1">
 										<span class="text-red-600">⚠️</span>
 										{task.name}
@@ -141,6 +154,11 @@
 								{:else if isCompletedTask(task)}
 									<span class="inline-flex items-center gap-1">
 										<span class="text-green-600">✓</span>
+										{task.name}
+									</span>
+								{:else if isWorkingTask(task)}
+									<span class="inline-flex items-center gap-1">
+										<span class="text-yellow-600">⚙️</span>
 										{task.name}
 									</span>
 								{:else}
@@ -200,11 +218,10 @@
 			</tbody>
 			</table>
 		</div>
-	</div>
+	</ListCard>
 {:else}
-	<div class="rounded-2xl border border-gray-100 bg-white p-12 text-center shadow">
-		<div class="mb-4 text-6xl">📚</div>
-		<h2 class="mb-2 text-2xl font-bold text-gray-900">No tasks yet</h2>
-		<p class="text-gray-600">Get started by adding your first task to track your workload.</p>
-	</div>
+	<EmptyState
+		title="No tasks yet"
+		description="Get started by adding your first task to track your workload."
+	/>
 {/if}

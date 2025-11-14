@@ -1,6 +1,7 @@
 <script>
-	import TaskList from '$lib/components/TaskList.svelte';
-	import CourseList from '$lib/components/CourseList.svelte';
+	import TaskList from '$lib/components/list/TaskList.svelte';
+	import CourseList from '$lib/components/list/CourseList.svelte';
+	import WorkloadList from '$lib/components/list/WorkloadList.svelte';
 
 	export let data;
 </script>
@@ -16,6 +17,11 @@
 		<p class="mx-auto max-w-2xl text-base text-gray-600 sm:text-lg md:text-xl px-4">
 			Your central hub for managing tasks, tracking workload, and staying organized.
 		</p>
+	</div>
+
+	<!-- Workload bar chart-->
+	<div class="mb-16 overflow-hidden">
+		<WorkloadList tasks={data.tasks} />
 	</div>
 
 	<!-- Task Bar and Courses -->
