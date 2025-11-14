@@ -153,15 +153,22 @@
                 </button>
             </div>
             
-            {#if viewMode === 'week' && weekOffset !== 0 || viewMode === 'month' && monthOffset !== 0}
-                <button
-                    type="button"
-                    on:click={() => { weekOffset = 0; monthOffset = 0; }}
-                    class="mt-2 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
-                >
-                    Return to current {viewMode}
-                </button>
+            {#if viewMode === 'week' || viewMode === 'month'}
+                <div style="height:2rem" class="flex items-center">
+                    {#if viewMode === 'week' && weekOffset !== 0 || viewMode === 'month' && monthOffset !== 0}
+                        <button
+                            type="button"
+                            on:click={() => { weekOffset = 0; monthOffset = 0; }}
+                            class="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+                        >
+                            Return to current {viewMode}
+                        </button>
+                    {:else}
+                        <div style="height:2rem"></div>
+                    {/if}
+                </div>
             {/if}
+            
         {/if}
         
         <!-- Custom Date Range Picker -->

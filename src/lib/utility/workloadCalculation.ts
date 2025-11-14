@@ -29,12 +29,11 @@ export interface WeekData {
  * Get the start of the week (Monday) for a given date
  */
 export function getStartOfWeek(date: Date): Date {
-	const d = new Date(date);
-	const day = d.getDay();
-	const diff = day === 0 ? -6 : 1 - day;
-	d.setDate(d.getDate() + diff);
-	d.setHours(0, 0, 0, 0);
-	return d;
+    const d = new Date(date);
+    const day = d.getDay();
+    // Mandag som start på ugen (0 = søndag, 1 = mandag, ...)
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(d.setDate(diff));
 }
 
 /**
@@ -142,44 +141,50 @@ export function calculateWeekData(tasks: Task[], weekOffset: number = 0): DayDat
  * @returns Array of weekly workload data
  */
 export function calculateMonthData(tasks: Task[], monthOffset: number = 0): WeekData[] {
-	const now = new Date();
-	const targetDate = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
-	const startOfMonth = getStartOfMonth(targetDate);
-	const endOfMonth = getEndOfMonth(targetDate);
+    const now = new Date();
+    const targetDate = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
+    const startOfMonth = getStartOfMonth(targetDate);
+    const endOfMonth = getEndOfMonth(targetDate);
 
-	const weeksMap = new Map<number, WeekData>();
+    // Find første mandag før eller på månedens start
+    let firstMonday = getStartOfWeek(startOfMonth);
+    // Find sidste søndag efter eller på månedens slut
+    let lastSunday = new Date(getStartOfWeek(endOfMonth));
+    lastSunday.setDate(lastSunday.getDate() + 6);
 
-	let currentDate = new Date(startOfMonth);
-	while (currentDate <= endOfMonth) {
-		const weekNum = getWeekNumber(currentDate);
-		if (!weeksMap.has(weekNum)) {
-			weeksMap.set(weekNum, {
-				weekNumber: weekNum,
-				label: `Week ${weekNum}`,
-				overdue: 0,
-				incomplete: 0,
-				completed: 0
-			});
-		}
-		currentDate.setDate(currentDate.getDate() + 1);
-	}
+    const weeks: WeekData[] = [];
+    let current = new Date(firstMonday);
 
-	tasks.forEach((task) => {
-		if (!task.deadline) return;
+    while (current <= lastSunday) {
+        const weekNum = getWeekNumber(current);
+        const weekLabel = `Week ${weekNum}`;
+        weeks.push({
+            weekNumber: weekNum,
+            label: weekLabel,
+            overdue: 0,
+            incomplete: 0,
+            completed: 0
+        });
+        current.setDate(current.getDate() + 7);
+    }
 
-		const taskDate = new Date(task.deadline);
-		if (taskDate >= startOfMonth && taskDate <= endOfMonth) {
-			const weekNum = getWeekNumber(taskDate);
-			const weekData = weeksMap.get(weekNum);
-			const hours = task.effort_hours || 0;
-			if (!weekData) return;
-			if (isTaskCompleted(task)) weekData.completed += hours;
-			else if (isTaskOverdue(task, now)) weekData.overdue += hours;
-			else if (isTaskIncomplete(task, now)) weekData.incomplete += hours;
-		}
-	});
+    // Map weekNumber til index i weeks array
+    const weekMap = new Map<number, WeekData>();
+    weeks.forEach(w => weekMap.set(w.weekNumber, w));
 
-	return Array.from(weeksMap.values()).sort((a, b) => a.weekNumber - b.weekNumber);
+    tasks.forEach((task) => {
+        if (!task.deadline) return;
+        const taskDate = new Date(task.deadline);
+        const weekNum = getWeekNumber(taskDate);
+        const weekData = weekMap.get(weekNum);
+        const hours = task.effort_hours || 0;
+        if (!weekData) return;
+        if (isTaskCompleted(task)) weekData.completed += hours;
+        else if (isTaskOverdue(task, now)) weekData.overdue += hours;
+        else if (isTaskIncomplete(task, now)) weekData.incomplete += hours;
+    });
+
+    return weeks;
 }
 
 /**
