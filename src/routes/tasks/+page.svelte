@@ -40,20 +40,20 @@
 
 <div class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
 	<div class="mx-auto max-w-6xl">
-		<header class="mb-8 flex items-center justify-between">
+		<header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between md:mb-8">
 			<div>
 				<h1
-					class="mb-3 bg-gradient-to-r from-violet-600 to-blue-600 bg-clip-text text-4xl leading-tight font-bold text-transparent"
+					class="mb-2 bg-gradient-to-r from-violet-600 to-blue-600 bg-clip-text text-2xl leading-tight font-bold text-transparent sm:text-3xl md:text-4xl md:mb-3"
 				>
 					My Tasks
 				</h1>
-				<p class="text-gray-600">Plan and track your tasks across courses.</p>
+				<p class="text-sm text-gray-600 sm:text-base">Plan and track your tasks across courses.</p>
 			</div>
 
 			<button
 				on:click={() => (isModalOpen = true)}
-				class="inline-flex items-center gap-3 rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 px-5 py-2 text-sm
-					   font-semibold text-white shadow-md transition-shadow duration-200 hover:shadow-lg"
+				class="inline-flex items-center justify-center gap-3 rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 px-5 py-2 text-sm
+					   font-semibold text-white shadow-md transition-shadow duration-200 hover:shadow-lg sm:self-start"
 				aria-haspopup="dialog"
 			>
 				<span class="text-xl leading-none">+</span>
