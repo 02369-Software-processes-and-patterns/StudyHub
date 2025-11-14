@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import AddTaskModal from '$lib/components/AddTaskModal.svelte';
+	import AddTaskModal from '$lib/components/modal/AddTaskModal.svelte';
 	import TaskList from '$lib/components/list/TaskList.svelte';
 	import type { PageData } from './$types';
 
