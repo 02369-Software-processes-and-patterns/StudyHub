@@ -1,5 +1,6 @@
 <script lang="ts">
-    import WorkloadOverview from '$lib/components/WorkloadOverview.svelte';
+	import WorkloadList from '$lib/components/list/WorkloadList.svelte';
+    import WorkloadOverview from '$lib/components/list/WorkloadList.svelte';
 	import type { PageData } from './$types';
 
     export let data: PageData;
@@ -41,7 +42,7 @@
 
 		<!-- Workload Chart -->
 		{#if tasks.length > 0}
-			<WorkloadOverview tasks={tasks} />
+			<WorkloadList tasks={tasks} />
 		{:else}
 			<div class="rounded-2xl border border-gray-100 bg-white p-12 text-center shadow-sm">
 				<p class="mb-4 text-gray-500">No tasks to display.</p>

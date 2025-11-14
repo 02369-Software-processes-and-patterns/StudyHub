@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import AddTaskModal from '$lib/components/AddTaskModal.svelte';
-	import TaskList from '$lib/components/TaskList.svelte';
+	import TaskList from '$lib/components/list/TaskList.svelte';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
