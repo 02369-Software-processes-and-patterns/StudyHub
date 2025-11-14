@@ -1,16 +1,39 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
-	import AddCourseForm from '$lib/components/AddCourseForm.svelte';
-	import CourseList from '$lib/components/CourseList.svelte';
-	import type { PageData } from './$types';
+    import { invalidateAll } from '$app/navigation';
+    import AddCourseForm from '$lib/components/AddCourseForm.svelte'; // importerer komponent til at tilføje et nyt kursus
+    import CourseList from '$lib/components/CourseList.svelte'; // importerer komponent til at vise listen af kurser
+    import type { PageData } from './$types';
+    import { onMount } from 'svelte';
 
-	export let data: PageData;
+    export let data: PageData; // data hentet fra load-funktionen i +page.ts
 
-	let showAddCourseModal = false;
+	//Definerer attributter:
+	let showAddCourseModal = false; // boolean der styrer om modal til at tilføje kursus er åben
+    let activeSemester = 'Fall'; // aktivt semester sæætes som standard til 'Fall'
 
-	async function handleCourseAdded() {
-		await invalidateAll();
-	}
+    // Funktion der afgør hvilket semester vi er i baseret på nuværende måned:
+    function getSemester(date: Date) {
+        const m = date.getMonth(); // 0 = januar, 11 = december
+        // Hvis måned er fra september til januar = "Fall" ellers "Winter" semester
+        return (m >= 8 || m <= 0) ? 'Fall' : 'Winter';
+    }
+
+    // Når komponenten er monteret opdater "activeSemester" til det rigtige:
+    onMount(() => {
+        activeSemester = getSemester(new Date());
+    });
+
+    // Når et kursus er blevet tilføjet fra AddCourseForm, så genindlæses siden og modal (popup vindue) lukkes:
+    async function handleCourseAdded() {
+        await invalidateAll();
+        showAddCourseModal = false;
+    }
+
+    // Sætter totalECTS ved at beregne sum af ECTS point fra alle kurser. Den kører automatisk når data.courses ændrer sig:
+    $: totalECTS = data.courses?.reduce(
+        (sum, course) => sum + (Number(course.ects_points) ?? 0), 
+        0
+    ) ?? 0;
 </script>
 
 <div class="max-w-6xl mx-auto px-4 py-6 sm:py-8">
@@ -31,4 +54,8 @@
 	<CourseList courses={data.courses} />
 </div>
 
-<AddCourseForm bind:showModal={showAddCourseModal} on:courseAdded={handleCourseAdded} />
+<!-- Modal komponent (pop up vindue) til at tilføje kursus som er bindet til showAddCourseModal: -->
+<AddCourseForm 
+    bind:showModal={showAddCourseModal} 
+    on:courseAdded={handleCourseAdded} 
+/>
