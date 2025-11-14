@@ -1,6 +1,5 @@
 <script lang="ts">
 	import WorkloadList from '$lib/components/list/WorkloadList.svelte';
-    import WorkloadOverview from '$lib/components/list/WorkloadList.svelte';
 	import type { PageData } from './$types';
 
     export let data: PageData;
