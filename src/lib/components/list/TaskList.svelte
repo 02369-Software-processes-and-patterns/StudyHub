@@ -25,6 +25,7 @@
 	export let tasks: Task[] = [];
 	export let maxTasks: number | null = null; // null = show all tasks
 	export let showViewAll: boolean = true;
+	export let openEdit;
 
 	// Sort tasks by deadline and limit if maxTasks is set
 	$: sortedTasks = [...tasks]
@@ -219,7 +220,7 @@
 						<td class="px-2 py-2 text-right md:px-6">
 							<button
 								class="rounded-md bg-indigo-600 px-2 py-1 text-xs font-medium text-white hover:bg-indigo-700 sm:text-sm"
-								on:click={() => dispatch('editTask', task)}
+								on:click={() => openEdit(task)}
 							>
 								Edit
 							</button>
