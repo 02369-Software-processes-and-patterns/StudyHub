@@ -42,7 +42,7 @@
 
 	<form 
 		method="POST" 
-		action="/tasks"
+		action="?/create" 
 		use:enhance={({ cancel }) => {
 			return async ({ result, update }) => {
 				if (result.type === 'success') {

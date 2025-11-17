@@ -1,17 +1,25 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import AddTaskModal from '$lib/components/modal/AddTaskModal.svelte';
+	import EditTaskModal from '$lib/components/modal/EditTaskModal.svelte';
 	import TaskList from '$lib/components/list/TaskList.svelte';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
 
 	let isModalOpen = false;
+	let isEditOpen = false;
+	let taskToEdit: { id: string | number; name: string; effort_hours?: number | null; course_id?: string | null; deadline?: string | null; } | null = null;
 
 	async function handleTaskAdded() {
 		await invalidateAll();
 		isModalOpen = false;
 	}
+
+	function openEdit(task: { id: string | number; name: string; effort_hours?: number | null; course_id?: string | null; deadline?: string | null; }) {
+		taskToEdit = task;
+		isEditOpen = true;
+}
 
 	$: totalTasks = data.tasks?.length ?? 0;
 	$: pendingTasks = data.tasks?.filter((t) => t.status === 'pending').length ?? 0;
@@ -78,7 +86,7 @@
 
 		{#if data.tasks && data.tasks.length > 0}
 			<div class="space-y-3">
-				<TaskList tasks={data.tasks} />
+				<TaskList tasks={data.tasks} openEdit={openEdit} />
 			</div>
 		{:else}
 			<div class="py-12 text-center">
@@ -94,4 +102,15 @@
 	</div>
 </div>
 
-<AddTaskModal bind:isOpen={isModalOpen} courses={data.courses} on:taskAdded={handleTaskAdded} />
+<AddTaskModal 
+	bind:isOpen={isModalOpen} 
+	courses={data.courses} 
+	on:taskAdded={handleTaskAdded} 
+	/>
+
+<EditTaskModal
+	bind:isOpen={isEditOpen}
+	task={taskToEdit}
+	courses={data.courses}
+	on:taskUpdated={() => invalidateAll()}
+/>

@@ -22,6 +22,7 @@
 	export let tasks: Task[] = [];
 	export let maxTasks: number | null = null; // null = show all tasks
 	export let showViewAll: boolean = true;
+	export let openEdit: (task: Task) => void;  
 
 	// Sort tasks by deadline and limit if maxTasks is set
 	$: sortedTasks = [...tasks]
@@ -212,6 +213,14 @@
 
 						<td class="px-2 py-2 text-xs text-gray-700 sm:px-4 md:px-6 md:py-4 sm:text-sm hidden lg:table-cell">
 							{task.effort_hours != null ? `${task.effort_hours} h` : '-'}
+						</td>
+						<td class="px-2 py-2 text-right md:px-6">
+							<button
+								class="rounded-md bg-indigo-600 px-2 py-1 text-xs font-medium text-white hover:bg-indigo-700 sm:text-sm"
+								on:click={() => openEdit(task)}
+							>
+								Edit
+							</button>
 						</td>
 					</tr>
 				{/each}
