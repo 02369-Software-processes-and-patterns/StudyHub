@@ -2,9 +2,6 @@
 	import { enhance } from '$app/forms';
 	import ListCard from './ListCard.svelte';
 	import EmptyState from './EmptyState.svelte';
-    import { createEventDispatcher } from 'svelte';
-
-    const dispatch = createEventDispatcher();
 
 	type TaskStatus = 'pending' | 'todo' | 'on-hold' | 'working' | 'completed';
 
@@ -25,7 +22,7 @@
 	export let tasks: Task[] = [];
 	export let maxTasks: number | null = null; // null = show all tasks
 	export let showViewAll: boolean = true;
-	export let openEdit;
+	export let openEdit: (task: Task) => void;  
 
 	// Sort tasks by deadline and limit if maxTasks is set
 	$: sortedTasks = [...tasks]

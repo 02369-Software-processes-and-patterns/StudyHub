@@ -9,16 +9,16 @@
 
 	let isModalOpen = false;
 	let isEditOpen = false;
-	let taskToEdit = null;
+	let taskToEdit: { id: string | number; name: string; effort_hours?: number | null; course_id?: string | null; deadline?: string | null; } | null = null;
 
 	async function handleTaskAdded() {
 		await invalidateAll();
 		isModalOpen = false;
 	}
 
-	function openEdit(task) {
-    taskToEdit = task;
-    isEditOpen = true;
+	function openEdit(task: { id: string | number; name: string; effort_hours?: number | null; course_id?: string | null; deadline?: string | null; }) {
+		taskToEdit = task;
+		isEditOpen = true;
 }
 
 	$: totalTasks = data.tasks?.length ?? 0;
@@ -102,11 +102,15 @@
 	</div>
 </div>
 
-<AddTaskModal bind:isOpen={isModalOpen} courses={data.courses} on:taskAdded={handleTaskAdded} />
+<AddTaskModal 
+	bind:isOpen={isModalOpen} 
+	courses={data.courses} 
+	on:taskAdded={handleTaskAdded} 
+	/>
 
 <EditTaskModal
-    bind:isOpen={isEditOpen}
-    task={taskToEdit}
-    courses={data.courses}
-    on:taskUpdated={() => invalidateAll()}
+	bind:isOpen={isEditOpen}
+	task={taskToEdit}
+	courses={data.courses}
+	on:taskUpdated={() => invalidateAll()}
 />
