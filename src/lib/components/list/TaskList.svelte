@@ -2,6 +2,9 @@
 	import { enhance } from '$app/forms';
 	import ListCard from './ListCard.svelte';
 	import EmptyState from './EmptyState.svelte';
+    import { createEventDispatcher } from 'svelte';
+
+    const dispatch = createEventDispatcher();
 
 	type TaskStatus = 'pending' | 'todo' | 'on-hold' | 'working' | 'completed';
 
@@ -212,6 +215,14 @@
 
 						<td class="px-2 py-2 text-xs text-gray-700 sm:px-4 md:px-6 md:py-4 sm:text-sm hidden lg:table-cell">
 							{task.effort_hours != null ? `${task.effort_hours} h` : '-'}
+						</td>
+						<td class="px-2 py-2 text-right md:px-6">
+							<button
+								class="rounded-md bg-indigo-600 px-2 py-1 text-xs font-medium text-white hover:bg-indigo-700 sm:text-sm"
+								on:click={() => dispatch('editTask', task)}
+							>
+								Edit
+							</button>
 						</td>
 					</tr>
 				{/each}
