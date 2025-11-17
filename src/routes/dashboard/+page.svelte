@@ -1,9 +1,19 @@
-<script>
+<script lang="ts">
+	import { invalidateAll } from '$app/navigation';
 	import TaskList from '$lib/components/list/TaskList.svelte';
 	import CourseList from '$lib/components/list/CourseList.svelte';
 	import WorkloadList from '$lib/components/list/WorkloadList.svelte';
+	import EditTaskModal from '$lib/components/modal/EditTaskModal.svelte';
 
 	export let data;
+
+	let isEditOpen = false;
+	let taskToEdit: { id: string | number; name: string; effort_hours?: number | null; course_id?: string | null; deadline?: string | null; } | null = null;
+
+	function openEdit(task: { id: string | number; name: string; effort_hours?: number | null; course_id?: string | null; deadline?: string | null; }) {
+		taskToEdit = task;
+		isEditOpen = true;
+	}
 </script>
 
 <div class="container mx-auto max-w-8xl px-4 py-12">
@@ -28,7 +38,7 @@
 	<div class="mb-16 grid gap-8 md:grid-cols-3">
 		<!-- Upcoming Tasks -->
 		<div class="md:col-span-2">
-			<TaskList tasks={data.tasks} maxTasks={6} />
+			<TaskList tasks={data.tasks} maxTasks={6} openEdit={openEdit} />
 		</div>
 
 		<!-- My Courses -->
@@ -58,3 +68,10 @@
 		</div>
 	</div>
 </div>
+
+<EditTaskModal
+	bind:isOpen={isEditOpen}
+	task={taskToEdit}
+	courses={data.courses}
+	on:taskUpdated={() => invalidateAll()}
+/>
