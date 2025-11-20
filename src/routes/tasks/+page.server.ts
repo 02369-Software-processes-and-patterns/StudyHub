@@ -171,5 +171,40 @@ export const actions: Actions = {
 			console.error('updateTask action crashed:', err);
 			return fail(500, { error: 'Internal error while updating task' });
 		}
+	},
+
+	/** POST ?/updateTasksBatch — opdater multiple tasks til completed */
+	updateTasksBatch: async ({ request, locals: { supabase } }) => {
+		try {
+			const {
+				data: { user },
+				error: userErr
+			} = await supabase.auth.getUser();
+			if (userErr) return fail(401, { error: userErr.message });
+			if (!user) return fail(401, { error: 'Not authenticated' });
+
+			const formData = await request.formData();
+			const taskIds = formData.getAll('task_ids');
+
+			if (!taskIds || taskIds.length === 0) {
+				return fail(400, { error: 'No task IDs provided' });
+			}
+
+			const { error } = await supabase
+				.from('tasks')
+				.update({ status: 'completed' })
+				.in('id', taskIds)
+				.eq('user_id', user.id);
+
+			if (error) {
+				console.error('Supabase batch update error:', error);
+				return fail(500, { error: error.message });
+			}
+
+			return { success: true, updated: taskIds.length };
+		} catch (err) {
+			console.error('updateTasksBatch action crashed:', err);
+			return fail(500, { error: 'Internal error while updating tasks' });
+		}
 	}
 };
