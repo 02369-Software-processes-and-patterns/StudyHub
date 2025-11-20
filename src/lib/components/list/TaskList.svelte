@@ -38,10 +38,11 @@
 	}
 
 	function toggleSelectAll() {
-		if (selectedTaskIds.size === sortedTasks.length) {
+		const selectableTasks = sortedTasks.filter(task => task.status !== 'completed');
+		if (selectableTasks.every(task => selectedTaskIds.has(task.id))) {
 			selectedTaskIds.clear();
 		} else {
-			sortedTasks.forEach(task => selectedTaskIds.add(task.id));
+			selectableTasks.forEach(task => selectedTaskIds.add(task.id));
 		}
 		selectedTaskIds = selectedTaskIds; // trigger reactivity
 	}

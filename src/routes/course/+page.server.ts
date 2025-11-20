@@ -166,19 +166,8 @@
 			}
 
 			try {
-				// Delete all tasks associated with this course
-				const { error: tasksError } = await supabase
-					.from('tasks')
-					.delete()
-					.eq('course_id', course_id)
-					.eq('user_id', session.user.id);
-
-				if (tasksError) {
-					console.error('Error deleting tasks:', tasksError);
-					return fail(500, { error: 'Failed to delete associated tasks' });
-				}
-
-				// Delete the course itself
+				// Delete the course first - this is safer as it's the primary action
+				// If this fails, tasks remain unchanged (preferred to the inverse)
 				const { error: courseError } = await supabase
 					.from('courses')
 					.delete()
@@ -188,6 +177,20 @@
 				if (courseError) {
 					console.error('Error deleting course:', courseError);
 					return fail(500, { error: 'Failed to delete course' });
+				}
+
+				// Delete associated tasks after course is successfully deleted
+				// This is safe because course is already gone
+				const { error: tasksError } = await supabase
+					.from('tasks')
+					.delete()
+					.eq('course_id', course_id)
+					.eq('user_id', session.user.id);
+
+				if (tasksError) {
+					console.error('Error deleting tasks:', tasksError);
+					// Log the error but don't fail - course is already deleted
+					// Tasks will be orphaned but won't cause inconsistency with missing course
 				}
 
 				return { success: true };

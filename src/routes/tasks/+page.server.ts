@@ -186,22 +186,23 @@ export const actions: Actions = {
 			const formData = await request.formData();
 			const taskIds = formData.getAll('task_ids');
 
-			if (!taskIds || taskIds.length === 0) {
+			if (taskIds.length === 0) {
 				return fail(400, { error: 'No task IDs provided' });
 			}
 
-			const { error } = await supabase
+			const { data: updatedRows, error } = await supabase
 				.from('tasks')
 				.update({ status: 'completed' })
 				.in('id', taskIds)
-				.eq('user_id', user.id);
+				.eq('user_id', user.id)
+				.select('id'); 
 
 			if (error) {
 				console.error('Supabase batch update error:', error);
 				return fail(500, { error: error.message });
 			}
 
-			return { success: true, updated: taskIds.length };
+			return { success: true, updated: updatedRows ? updatedRows.length : 0 };
 		} catch (err) {
 			console.error('updateTasksBatch action crashed:', err);
 			return fail(500, { error: 'Internal error while updating tasks' });

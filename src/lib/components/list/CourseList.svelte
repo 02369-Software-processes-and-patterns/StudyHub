@@ -22,6 +22,7 @@
 	let isDeleting: Record<string | number, boolean> = {};
 	let deleteModalOpen = false;
 	let courseToDelete: Course | null = null;
+	let deleteError = '';
 
 	// Sort courses by name and limit if maxCourses is set
 	$: sortedCourses = [...courses]
@@ -48,12 +49,14 @@
 	function closeDeleteModal() {
 		deleteModalOpen = false;
 		courseToDelete = null;
+		deleteError = '';
 	}
 
 	async function confirmDelete() {
 		if (!courseToDelete) return;
 
 		isDeleting[courseToDelete.id] = true;
+		deleteError = '';
 
 		try {
 			const formData = new FormData();
@@ -68,11 +71,11 @@
 				closeDeleteModal();
 				dispatch('delete', courseToDelete.id);
 			} else {
-				alert('Failed to delete course');
+				deleteError = 'Failed to delete course. Please try again.';
 			}
 		} catch (err) {
 			console.error('Error deleting course:', err);
-			alert('Error deleting course');
+			deleteError = 'An error occurred while deleting the course. Please try again.';
 		} finally {
 			if (courseToDelete) {
 				isDeleting[courseToDelete.id] = false;
@@ -159,6 +162,12 @@
 
 <Modal bind:isOpen={deleteModalOpen} title="Delete Course" maxWidth="max-w-sm" on:close={closeDeleteModal}>
 	{#if courseToDelete}
+		{#if deleteError}
+			<div class="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+				{deleteError}
+			</div>
+		{/if}
+
 		<div class="space-y-4">
 			<p class="text-gray-600">
 				Are you sure you want to delete <span class="font-semibold text-gray-900">"{courseToDelete.name}"</span>?
