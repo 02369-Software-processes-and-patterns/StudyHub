@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
 	import ListCard from './ListCard.svelte';
 	import EmptyState from './EmptyState.svelte';
 
@@ -22,7 +23,56 @@
 	export let tasks: Task[] = [];
 	export let maxTasks: number | null = null; // null = show all tasks
 	export let showViewAll: boolean = true;
-	export let openEdit: (task: Task) => void;  
+	export let openEdit: (task: Task) => void;
+
+	let selectedTaskIds: Set<string | number> = new Set();
+	let isSubmittingBatch = false;
+
+	function toggleTaskSelection(taskId: string | number) {
+		if (selectedTaskIds.has(taskId)) {
+			selectedTaskIds.delete(taskId);
+		} else {
+			selectedTaskIds.add(taskId);
+		}
+		selectedTaskIds = selectedTaskIds; // trigger reactivity
+	}
+
+	function toggleSelectAll() {
+		const selectableTasks = sortedTasks.filter(task => task.status !== 'completed');
+		if (selectableTasks.every(task => selectedTaskIds.has(task.id))) {
+			selectedTaskIds.clear();
+		} else {
+			selectableTasks.forEach(task => selectedTaskIds.add(task.id));
+		}
+		selectedTaskIds = selectedTaskIds; // trigger reactivity
+	}
+
+	async function markSelectedAsCompleted() {
+		if (selectedTaskIds.size === 0) return;
+		isSubmittingBatch = true;
+		
+		try {
+			const formData = new FormData();
+			Array.from(selectedTaskIds).forEach(id => {
+				formData.append('task_ids', String(id));
+			});
+
+			const response = await fetch('?/updateTasksBatch', {
+				method: 'POST',
+				body: formData
+			});
+
+			if (response.ok) {
+				selectedTaskIds.clear();
+				selectedTaskIds = selectedTaskIds;
+				await invalidateAll();
+			}
+		} catch (err) {
+			console.error('Error marking tasks as completed:', err);
+		} finally {
+			isSubmittingBatch = false;
+		}
+	}  
 
 	// Sort tasks by deadline and limit if maxTasks is set
 	$: sortedTasks = [...tasks]
@@ -117,13 +167,39 @@
 		{showViewAll}
 		viewAllUrl="/tasks"
 	>
-		<div class="overflow-x-auto">
-			<table class="min-w-full divide-y divide-gray-200">
-			<thead class="bg-gray-50">
-				<tr>
-					<th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3"
-						>Task</th
+		<div class="space-y-4">
+			{#if selectedTaskIds.size > 0}
+				<div class="flex items-center justify-between rounded-lg bg-blue-50 p-3 border border-blue-200">
+					<span class="text-sm font-medium text-blue-900">
+						{selectedTaskIds.size} task{selectedTaskIds.size !== 1 ? 's' : ''} selected
+					</span>
+					<button
+						on:click={markSelectedAsCompleted}
+						disabled={isSubmittingBatch}
+						class="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
 					>
+						{isSubmittingBatch ? 'Marking...' : 'Mark as Completed'}
+					</button>
+				</div>
+			{/if}
+
+			<div class="overflow-x-auto">
+				<table class="min-w-full divide-y divide-gray-200">
+				<thead class="bg-gray-50">
+					<tr>
+						<th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3 w-12">
+							<input
+								type="checkbox"
+								checked={selectedTaskIds.size === sortedTasks.length && sortedTasks.length > 0}
+								indeterminate={selectedTaskIds.size > 0 && selectedTaskIds.size < sortedTasks.length}
+								on:change={toggleSelectAll}
+								class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+								aria-label="Select all tasks"
+							/>
+						</th>
+						<th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3"
+							>Task</th
+						>
 					<th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3 hidden md:table-cell"
 						>Deadline</th
 					>
@@ -140,6 +216,16 @@
 			</thead>			<tbody class="divide-y divide-gray-200 bg-white">
 				{#each sortedTasks as task (task.id)}
 					<tr class="transition hover:bg-gray-50 {getRowClass(task)}">
+						<td class="px-2 py-2 text-center sm:px-4 md:px-6 md:py-4">
+							<input
+								type="checkbox"
+								checked={selectedTaskIds.has(task.id)}
+								on:change={() => toggleTaskSelection(task.id)}
+								disabled={task.status === 'completed'}
+								class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+								aria-label="Select task"
+							/>
+						</td>
 						<td class="px-2 py-2 text-xs sm:px-4 md:px-6 md:py-4">
 							<div class="font-semibold text-gray-900 sm:text-sm">
 								{#if isOverdueTask(task) && isWorkingTask(task)}
@@ -226,6 +312,7 @@
 				{/each}
 			</tbody>
 			</table>
+		</div>
 		</div>
 	</ListCard>
 {:else}

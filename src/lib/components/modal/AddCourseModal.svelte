@@ -15,6 +15,15 @@
 	let loading = false;
 	let error = '';
 
+	const ectsOptions = [
+		{ label: '2.5 ECTS', value: '2.5' },
+		{ label: '5 ECTS', value: '5' },
+		{ label: '7.5 ECTS', value: '7.5' },
+		{ label: '10 ECTS', value: '10' },
+		{ label: '15 ECTS', value: '15' },
+		{ label: '20 ECTS', value: '20' }
+	];
+
 	const weekdays = [
 		{ label: 'Mon', value: 1 },
 		{ label: 'Tue', value: 2 },
@@ -85,16 +94,20 @@
 
 				<label class="block">
 					<span class="text-gray-700 font-medium">ECTS Points *</span>
-					<input 
-						type="number" 
+					<select 
 						name="ects_points"
 						bind:value={ects_points} 
-						step="0.5" 
-						min="0" 
 						required 
 						disabled={loading}
 						class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 disabled:bg-gray-100 disabled:cursor-not-allowed px-3 py-2 border"
-					/>
+					>
+						<option value="">Select ECTS</option>
+						{#each ectsOptions as option (option.value)}
+							<option value={option.value}>
+								{option.label}
+							</option>
+						{/each}
+					</select>
 				</label>
 
 				<div class="grid grid-cols-2 gap-4">
