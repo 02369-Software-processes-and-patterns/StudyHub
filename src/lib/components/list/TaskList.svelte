@@ -43,6 +43,22 @@
 		{ value: 'completed', label: 'Completed' }
 	] as const satisfies ReadonlyArray<{ value: TaskStatus; label: string }>;
 
+	// Fjern "completed" fra dropdown
+	const statusOptionsNoCompleted = statusOptions.filter(o => o.value !== 'completed');
+
+	// Hvilken status skal en opgave have når man fjerner fluebenet?
+	const UNCHECK_STATUS: TaskStatus = 'pending';
+
+	// Checkbox-change handler: sætter hidden 'status' feltet og submitter
+	function toggleCompleted(e: Event) {
+		const input = e.currentTarget as HTMLInputElement; // checkbox
+		const form = input.form!;
+		const statusField = form.querySelector('input[name="status"]') as HTMLInputElement;
+		statusField.value = input.checked ? 'completed' : UNCHECK_STATUS;
+		form.requestSubmit();
+	}
+
+
 	function fmtDeadline(value?: string | null) {
 		if (!value) return '-';
 		const d = new Date(value);
@@ -136,8 +152,15 @@
 					<th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3 hidden lg:table-cell"
 						>Time</th
 					>
+					<th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3">
+						Done
+					</th>
+					<!-- Tom overskrift til edit i menuen -->
+					<th class="px-2 py-2"></th>
+
 				</tr>
-			</thead>			<tbody class="divide-y divide-gray-200 bg-white">
+			</thead>			
+			<tbody class="divide-y divide-gray-200 bg-white">
 				{#each sortedTasks as task (task.id)}
 					<tr class="transition hover:bg-gray-50 {getRowClass(task)}">
 						<td class="px-2 py-2 text-xs sm:px-4 md:px-6 md:py-4">
@@ -185,46 +208,70 @@
 							{task.course?.name ?? '-'}
 						</td>
 
+						<!-- STATUS: dropdown (uden 'completed') -->
 						<td class="px-2 py-2 text-xs sm:px-4 md:px-6 md:py-4">
-							<form 
-								method="POST" 
-								action="?/updateTask" 
-								use:enhance={() => {
-									return async ({ update }) => {
-										await update({ reset: false });
-									};
-								}}
+						<form 
+							method="POST" 
+							action="?/updateTask" 
+							use:enhance={() => ({ update }) => update({ reset: false })}
+						>
+							<input type="hidden" name="task_id" value={task.id} />
+							<select
+							name="status"
+							class="w-full rounded-md border-gray-300 bg-white px-1.5 py-1 text-xs focus:border-violet-500 focus:ring-violet-500 sm:px-2 sm:text-sm"
+							on:change={(e) => e.currentTarget.form?.requestSubmit()}
+							aria-label="Change task status"
 							>
-								<input type="hidden" name="task_id" value={task.id} />
-								<select
-									name="status"
-									class="w-full rounded-md border-gray-300 bg-white px-1.5 py-1 text-xs focus:border-violet-500 focus:ring-violet-500 sm:px-2 sm:text-sm"
-									on:change={(e) => e.currentTarget.form?.requestSubmit()}
-									aria-label="Change task status"
-								>
-									{#each statusOptions as opt (opt.value)}
-										<option value={opt.value} selected={task.status === opt.value}>
-											{opt.label}
-										</option>
-									{/each}
-								</select>
-							</form>
+							{#each statusOptionsNoCompleted as opt (opt.value)}
+								<option value={opt.value} selected={task.status === opt.value}>
+								{opt.label}
+								</option>
+							{/each}
+							</select>
+						</form>
 						</td>
 
+						<!-- TIME -->
 						<td class="px-2 py-2 text-xs text-gray-700 sm:px-4 md:px-6 md:py-4 sm:text-sm hidden lg:table-cell">
-							{task.effort_hours != null ? `${task.effort_hours} h` : '-'}
+						{task.effort_hours != null ? `${task.effort_hours} h` : '-'}
 						</td>
+
+						<!-- DONE: checkbox-kolonnen -->
+						<td class="px-2 py-2 text-xs sm:px-4 md:px-6 md:py-4">
+						<form 
+							method="POST" 
+							action="?/updateTask" 
+							use:enhance={() => ({ update }) => update({ reset: false })}
+						>
+							<input type="hidden" name="task_id" value={task.id} />
+							<!-- Hidden 'status' opdateres i toggleCompleted -->
+							<input type="hidden" name="status" value={task.status === 'completed' ? 'completed' : UNCHECK_STATUS} />
+
+							<label class="inline-flex items-center gap-2 cursor-pointer select-none">
+							<input
+								type="checkbox"
+								class="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500"
+								checked={task.status === 'completed'}
+								aria-label="Mark task as completed"
+								on:change={toggleCompleted}
+							/>
+							<span class="text-gray-600 hidden sm:inline">Completed</span>
+							</label>
+						</form>
+						</td>
+
+						<!-- Edit (handling/knap) -->
 						<td class="px-2 py-2 text-right md:px-6">
-							<button
-								class="rounded-md bg-indigo-600 px-2 py-1 text-xs font-medium text-white hover:bg-indigo-700 sm:text-sm"
-								on:click={() => openEdit(task)}
-							>
-								Edit
-							</button>
+						<button
+							class="rounded-md bg-indigo-600 px-2 py-1 text-xs font-medium text-white hover:bg-indigo-700 sm:text-sm"
+							on:click={() => openEdit(task)}
+						>
+							Edit
+						</button>
 						</td>
 					</tr>
-				{/each}
-			</tbody>
+					{/each}
+				</tbody>
 			</table>
 		</div>
 	</ListCard>
