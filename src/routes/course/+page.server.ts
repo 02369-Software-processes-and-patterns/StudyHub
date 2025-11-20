@@ -148,5 +148,52 @@
 
 			return { success: true };
 			
-		}
-	};	
+		},
+
+		/** POST ?/deleteCourse — slet et kursus */
+		deleteCourse: async ({ request, locals: { supabase, safeGetSession } }) => {
+			const { session } = await safeGetSession();
+
+			if (!session) {
+				return fail(401, { error: 'Not authenticated' });
+			}
+
+			const formData = await request.formData();
+			const course_id = formData.get('course_id')?.toString();
+
+			if (!course_id) {
+				return fail(400, { error: 'Missing course_id' });
+			}
+
+			try {
+				// Delete all tasks associated with this course
+				const { error: tasksError } = await supabase
+					.from('tasks')
+					.delete()
+					.eq('course_id', course_id)
+					.eq('user_id', session.user.id);
+
+				if (tasksError) {
+					console.error('Error deleting tasks:', tasksError);
+					return fail(500, { error: 'Failed to delete associated tasks' });
+				}
+
+				// Delete the course itself
+				const { error: courseError } = await supabase
+					.from('courses')
+					.delete()
+					.eq('id', course_id)
+					.eq('user_id', session.user.id);
+
+				if (courseError) {
+					console.error('Error deleting course:', courseError);
+					return fail(500, { error: 'Failed to delete course' });
+				}
+
+				return { success: true };
+			} catch (err: any) {
+				console.error('deleteCourse action crashed:', err);
+				return fail(500, { error: 'Internal error while deleting course' });
+			}
+		}	
+	};
