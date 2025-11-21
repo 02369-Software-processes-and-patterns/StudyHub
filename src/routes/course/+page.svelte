@@ -29,6 +29,11 @@
         showAddCourseModal = false;
     }
 
+	// Når et kursus bliver slettet, genindlæses siden:
+	async function handleCourseDeleted() {
+		await invalidateAll();
+	}
+
     // Sætter totalECTS ved at beregne sum af ECTS point fra alle kurser. Den kører automatisk når data.courses ændrer sig:
     $: totalECTS = data.courses?.reduce(
         (sum, course) => sum + (Number(course.ects_points) ?? 0), 
@@ -83,7 +88,7 @@
 
 		{#if data.courses && data.courses.length > 0}
 			<div class="space-y-3">
-				<CourseList courses={data.courses} />
+				<CourseList courses={data.courses} on:delete={handleCourseDeleted} />
 			</div>
 		{:else}
 			<div class="py-12 text-center">
