@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
 	import ListCard from './ListCard.svelte';
 
 	type TaskStatus = 'pending' | 'todo' | 'on-hold' | 'working' | 'completed';
@@ -17,6 +18,55 @@
 	export let maxTasks: number | null = null;
 	export let showViewAll: boolean = true;
 	export let openEdit: (task: Task) => void;
+
+	let selectedTaskIds: Set<string | number> = new Set();
+	let isSubmittingBatch = false;
+
+	function toggleTaskSelection(taskId: string | number) {
+		if (selectedTaskIds.has(taskId)) {
+			selectedTaskIds.delete(taskId);
+		} else {
+			selectedTaskIds.add(taskId);
+		}
+		selectedTaskIds = selectedTaskIds; // trigger reactivity
+	}
+
+	function toggleSelectAll() {
+		const selectableTasks = sortedTasks.filter(task => task.status !== 'completed');
+		if (selectableTasks.every(task => selectedTaskIds.has(task.id))) {
+			selectedTaskIds.clear();
+		} else {
+			selectableTasks.forEach(task => selectedTaskIds.add(task.id));
+		}
+		selectedTaskIds = selectedTaskIds; // trigger reactivity
+	}
+
+	async function markSelectedAsCompleted() {
+		if (selectedTaskIds.size === 0) return;
+		isSubmittingBatch = true;
+		
+		try {
+			const formData = new FormData();
+			Array.from(selectedTaskIds).forEach(id => {
+				formData.append('task_ids', String(id));
+			});
+
+			const response = await fetch('?/updateTasksBatch', {
+				method: 'POST',
+				body: formData
+			});
+
+			if (response.ok) {
+				selectedTaskIds.clear();
+				selectedTaskIds = selectedTaskIds;
+				await invalidateAll();
+			}
+		} catch (err) {
+			console.error('Error marking tasks as completed:', err);
+		} finally {
+			isSubmittingBatch = false;
+		}
+	}  
 
 	type StatusFilter = TaskStatus | 'all';
 	type CourseFilter = 'all' | string;
@@ -92,11 +142,14 @@
 		return '';
 	}
 
+	$: deadlineFromTs = deadlineFrom ? new Date(`${deadlineFrom}T00:00:00`).getTime() : undefined;
+	$: deadlineToTs = deadlineTo ? new Date(`${deadlineTo}T23:59:59`).getTime() : undefined;
+
 	function withinDateRange(dateISO?: string | null): boolean {
 		if (!dateISO) return !deadlineFrom && !deadlineTo;
 		const ts = new Date(dateISO).getTime();
-		if (deadlineFrom && ts < new Date(`${deadlineFrom}T00:00:00`).getTime()) return false;
-		if (deadlineTo && ts > new Date(`${deadlineTo}T23:59:59`).getTime()) return false;
+		if (deadlineFromTs !== undefined && ts < deadlineFromTs) return false;
+		if (deadlineToTs !== undefined && ts > deadlineToTs) return false;
 		return true;
 	}
 
@@ -363,6 +416,13 @@
 					</tr>
 				{/if}
 			</tbody>
-		</table>
-	</div>
-</ListCard>
+			</table>
+		</div>
+		</div>
+	</ListCard>
+{:else}
+	<EmptyState
+		title="No tasks yet"
+		description="Get started by adding your first task to track your workload."
+	/>
+{/if}
