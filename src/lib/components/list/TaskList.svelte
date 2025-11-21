@@ -92,6 +92,25 @@
 	// Fjern "completed" fra dropdown
 	const statusOptionsNoCompleted = statusOptions.filter(o => o.value !== 'completed');
 
+	// Build course options from tasks
+	$: courseOptions = Array.from(
+		new Map(
+			tasks
+				.filter((t) => t.course)
+				.map((t) => [t.course!.id, t.course!])
+		).values()
+	);
+
+	// Clear all filters
+	function clearFilters() {
+		nameQuery = '';
+		statusFilter = 'all';
+		courseFilter = 'all';
+		deadlineFrom = '';
+		deadlineTo = '';
+		effortSort = 'none';
+	}
+
 	// Hvilken status skal en opgave have når man fjerner fluebenet?
 	const UNCHECK_STATUS: TaskStatus = 'pending';
 
@@ -423,14 +442,9 @@
 						</td>
 					</tr>
 					{/each}
+				{/if}
 				</tbody>
 			</table>
 		</div>
-		</div>
 	</ListCard>
-{:else}
-	<EmptyState
-		title="No tasks yet"
-		description="Get started by adding your first task to track your workload."
-	/>
-{/if}
+
