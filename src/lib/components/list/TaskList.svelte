@@ -90,11 +90,14 @@
 		return '';
 	}
 
+	$: deadlineFromTs = deadlineFrom ? new Date(`${deadlineFrom}T00:00:00`).getTime() : undefined;
+	$: deadlineToTs = deadlineTo ? new Date(`${deadlineTo}T23:59:59`).getTime() : undefined;
+
 	function withinDateRange(dateISO?: string | null): boolean {
 		if (!dateISO) return !deadlineFrom && !deadlineTo;
 		const ts = new Date(dateISO).getTime();
-		if (deadlineFrom && ts < new Date(`${deadlineFrom}T00:00:00`).getTime()) return false;
-		if (deadlineTo && ts > new Date(`${deadlineTo}T23:59:59`).getTime()) return false;
+		if (deadlineFromTs !== undefined && ts < deadlineFromTs) return false;
+		if (deadlineToTs !== undefined && ts > deadlineToTs) return false;
 		return true;
 	}
 
