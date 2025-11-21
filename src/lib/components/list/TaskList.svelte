@@ -89,21 +89,21 @@
 		{ value: 'completed', label: 'Completed' }
 	] as const satisfies ReadonlyArray<{ value: TaskStatus; label: string }>;
 
-	// Unikke kursusmuligheder
-	$: courseOptions = Array.from(
-		new Map(
-			tasks.filter((t) => t.course).map((t) => [String(t.course!.id), t.course!.name])
-		).entries()
-	).map(([id, name]) => ({ id, name }));
+	// Fjern "completed" fra dropdown
+	const statusOptionsNoCompleted = statusOptions.filter(o => o.value !== 'completed');
 
-	function clearFilters() {
-		nameQuery = '';
-		statusFilter = 'all';
-		courseFilter = 'all';
-		deadlineFrom = '';
-		deadlineTo = '';
-		effortSort = 'none';
+	// Hvilken status skal en opgave have når man fjerner fluebenet?
+	const UNCHECK_STATUS: TaskStatus = 'pending';
+
+	// Checkbox-change handler: sætter hidden 'status' feltet og submitter
+	function toggleCompleted(e: Event) {
+		const input = e.currentTarget as HTMLInputElement; // checkbox
+		const form = input.form!;
+		const statusField = form.querySelector('input[name="status"]') as HTMLInputElement;
+		statusField.value = input.checked ? 'completed' : UNCHECK_STATUS;
+		form.requestSubmit();
 	}
+
 
 	function fmtDeadline(value?: string | null) {
 		if (!value) return '-';
@@ -298,6 +298,12 @@
 						class="hidden px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3 lg:table-cell"
 						>Time</th
 					>
+					<th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3">
+						Done
+					</th>
+					<!-- Tom overskrift til edit i menuen -->
+					<th class="px-2 py-2"></th>
+
 				</tr>
 			</thead>
 
@@ -350,72 +356,74 @@
 								{fmtDeadline(task.deadline)}
 							</td>
 
-							<td
-								class="hidden px-2 py-2 text-xs text-gray-700 sm:table-cell sm:px-4 sm:text-sm md:px-6 md:py-4"
-							>
-								{task.course?.name ?? '-'}
-							</td>
+						<td class="px-2 py-2 text-xs text-gray-700 sm:px-4 md:px-6 md:py-4 sm:text-sm hidden sm:table-cell">
+							{task.course?.name ?? '-'}
+						</td>
 
-							<td class="px-2 py-2 text-xs sm:px-4 md:px-6 md:py-4">
-								<form
-									method="POST"
-									action="?/updateTask"
-									use:enhance={() => {
-										return async ({ update }) => {
-											await update({ reset: false });
-										};
-									}}
-								>
-									<input type="hidden" name="task_id" value={task.id} />
-									<select
-										name="status"
-										class="w-full rounded-md border-gray-300 bg-white px-1.5 py-1 text-xs focus:border-violet-500 focus:ring-violet-500 sm:px-2 sm:text-sm"
-										on:change={(e) => e.currentTarget.form?.requestSubmit()}
-										aria-label="Change task status"
-									>
-										{#each statusOptions as opt (opt.value)}
-											<option value={opt.value} selected={task.status === opt.value}>
-												{opt.label}
-											</option>
-										{/each}
-									</select>
-								</form>
-							</td>
-
-							<td
-								class="hidden px-2 py-2 text-xs text-gray-700 sm:px-4 sm:text-sm md:px-6 md:py-4 lg:table-cell"
+						<!-- STATUS: dropdown (uden 'completed') -->
+						<td class="px-2 py-2 text-xs sm:px-4 md:px-6 md:py-4">
+						<form 
+							method="POST" 
+							action="?/updateTask" 
+							use:enhance={() => ({ update }) => update({ reset: false })}
+						>
+							<input type="hidden" name="task_id" value={task.id} />
+							<select
+							name="status"
+							class="w-full rounded-md border-gray-300 bg-white px-1.5 py-1 text-xs focus:border-violet-500 focus:ring-violet-500 sm:px-2 sm:text-sm"
+							on:change={(e) => e.currentTarget.form?.requestSubmit()}
+							aria-label="Change task status"
 							>
-								{task.effort_hours != null ? `${task.effort_hours} h` : '-'}
-							</td>
-							<td class="px-2 py-2 text-right md:px-6">
-								<button
-									class="rounded-md bg-indigo-600 px-2 py-1 text-xs font-medium text-white hover:bg-indigo-700 sm:text-sm"
-									on:click={() => openEdit(task)}
-								>
-									Edit
-								</button>
-							</td>
-						</tr>
-					{/each}
-				{:else}
-					<tr>
-						<td colspan="6" class="px-4 py-6 text-sm text-gray-600">
-							{#if totalTasks === 0}
-								You have no tasks yet.
-							{:else}
-								No tasks match your current filters.
-								<button
-									type="button"
-									on:click={clearFilters}
-									class="ml-2 inline-flex items-center rounded-md border border-gray-300 px-2 py-1 text-xs hover:bg-gray-50"
-								>
-									Clear filters
-								</button>
-							{/if}
+							{#each statusOptionsNoCompleted as opt (opt.value)}
+								<option value={opt.value} selected={task.status === opt.value}>
+								{opt.label}
+								</option>
+							{/each}
+							</select>
+						</form>
+						</td>
+
+						<!-- TIME -->
+						<td class="px-2 py-2 text-xs text-gray-700 sm:px-4 md:px-6 md:py-4 sm:text-sm hidden lg:table-cell">
+						{task.effort_hours != null ? `${task.effort_hours} h` : '-'}
+						</td>
+
+						<!-- DONE: checkbox-kolonnen -->
+						<td class="px-2 py-2 text-xs sm:px-4 md:px-6 md:py-4">
+						<form 
+							method="POST" 
+							action="?/updateTask" 
+							use:enhance={() => ({ update }) => update({ reset: false })}
+						>
+							<input type="hidden" name="task_id" value={task.id} />
+							<!-- Hidden 'status' opdateres i toggleCompleted -->
+							<input type="hidden" name="status" value={task.status === 'completed' ? 'completed' : UNCHECK_STATUS} />
+
+							<label class="inline-flex items-center gap-2 cursor-pointer select-none">
+							<input
+								type="checkbox"
+								class="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500"
+								checked={task.status === 'completed'}
+								aria-label="Mark task as completed"
+								on:change={toggleCompleted}
+							/>
+							<span class="text-gray-600 hidden sm:inline">Completed</span>
+							</label>
+						</form>
+						</td>
+
+						<!-- Edit (handling/knap) -->
+						<td class="px-2 py-2 text-right md:px-6">
+						<button
+							class="rounded-md bg-indigo-600 px-2 py-1 text-xs font-medium text-white hover:bg-indigo-700 sm:text-sm"
+							on:click={() => openEdit(task)}
+						>
+							Edit
+						</button>
 						</td>
 					</tr>
-				{/if}
-			</tbody>
+					{/each}
+				</tbody>
 			</table>
 		</div>
 		</div>

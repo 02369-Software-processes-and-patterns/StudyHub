@@ -17,7 +17,7 @@
     
     <form method="POST" action="?/signup" class="flex flex-col gap-4">
       <label class="flex flex-col gap-1 font-medium">
-        Name
+        Full name
         <input 
           name="name" 
           type="text" 
