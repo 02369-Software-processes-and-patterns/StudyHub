@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import ListCard from './ListCard.svelte';
-	import EmptyState from './EmptyState.svelte';
 
 	type TaskStatus = 'pending' | 'todo' | 'on-hold' | 'working' | 'completed';
 	type CourseRef = { id: string | number; name: string; };
