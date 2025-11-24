@@ -15,7 +15,8 @@
 		{ label: 'My dashboard', href: '/dashboard' },
 		{ label: 'My Workload', href: '/workload' },
 		{ label: 'My Tasks', href: '/tasks' },
-		{ label: 'My Courses', href: '/course' }
+		{ label: 'My Courses', href: '/course' },
+		{ label: 'My Projects', href: '/project' }
 	];
 
     // Get user name from authenticated user object - stored in identity_data as JSONB
