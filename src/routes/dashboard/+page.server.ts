@@ -1,111 +1,203 @@
 import type { Actions, PageServerLoad } from './$types';
 import { fail } from '@sveltejs/kit';
+import {
+	getTasksWithCourse,
+	getCourses,
+	getAuthenticatedUser,
+	updateTask,
+	deleteTask,
+	updateCourse,
+	deleteCourse,
+	deleteTasksByCourse,
+	parseTaskUpdateForm,
+	regenerateCourseTasks
+} from '$lib/server/db';
 
-export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession } }) => {
-	const { session } = await safeGetSession();
-
-	if (!session) {
+export const load: PageServerLoad = async ({ locals: { supabase } }) => {
+	const authResult = await getAuthenticatedUser(supabase);
+	if (authResult.error) {
 		return { tasks: [], courses: [] };
 	}
 
-	// Fetch upcoming tasks sorted by deadline
-	const { data: tasks, error: tasksError } = await supabase
-		.from('tasks')
-		.select(
-			`
-            *,
-            course:courses(id, name)
-        `
-		)
-		.eq('user_id', session.user.id)
-		.order('deadline', { ascending: true });
+	// Fetch tasks and courses in parallel
+	const [tasksResult, coursesResult] = await Promise.all([
+		getTasksWithCourse(supabase, authResult.userId, 'deadline'),
+		getCourses(supabase, authResult.userId, 'name')
+	]);
 
-	if (tasksError) console.error('Error loading tasks:', tasksError);
-
-	// Fetch user's courses
-	const { data: courses, error: coursesError } = await supabase
-		.from('courses')
-		.select('*')
-		.eq('user_id', session.user.id)
-		.order('name', { ascending: true });
-
-	if (coursesError) console.error('Error loading courses:', coursesError);
+	if (tasksResult.error) console.error('Error loading tasks:', tasksResult.error);
+	if (coursesResult.error) console.error('Error loading courses:', coursesResult.error);
 
 	return {
-		tasks: tasks ?? [],
-		courses: courses ?? []
+		tasks: tasksResult.data ?? [],
+		courses: coursesResult.data ?? []
 	};
 };
 
 export const actions: Actions = {
 	updateTask: async ({ request, locals: { supabase } }) => {
 		try {
-			const {
-				data: { user },
-				error: userErr
-			} = await supabase.auth.getUser();
-			if (userErr) return fail(401, { error: userErr.message });
-			if (!user) return fail(401, { error: 'Not authenticated' });
+			// Get authenticated user
+			const authResult = await getAuthenticatedUser(supabase);
+			if (authResult.error) {
+				return fail(authResult.error.status, { error: authResult.error.message });
+			}
 
+			// Parse form data
 			const formData = await request.formData();
-			const task_id = formData.get('task_id')?.toString();
-			if (!task_id) return fail(400, { error: 'Missing task_id' });
+			const { taskId, updates, error: parseError } = parseTaskUpdateForm(formData);
 
-			const patch: Record<string, unknown> = {};
-
-			if (formData.has('status')) {
-				const raw = formData.get('status')?.toString().toLowerCase();
-				const allowed = ['pending', 'todo', 'on-hold', 'working', 'completed'] as const;
-				if (!raw || !allowed.includes(raw as (typeof allowed)[number])) {
-					return fail(400, { error: 'Invalid status value' });
-				}
-				patch.status = raw;
+			if (parseError || !taskId) {
+				return fail(400, { error: parseError ?? 'Missing task_id' });
 			}
 
-			if (formData.has('name')) {
-				const name = formData.get('name')?.toString()?.trim();
-				if (name) patch.name = name;
-			}
-
-			if (formData.has('effort_hours')) {
-				let num = Number.parseFloat(formData.get('effort_hours')?.toString() ?? '');
-				if (!Number.isFinite(num) || num < 0) return fail(400, { error: 'Invalid effort_hours' });
-				num = Math.round(num);
-				patch.effort_hours = num;
-			}
-
-			if (formData.has('deadline')) {
-				const raw = formData.get('deadline')?.toString();
-				if (raw) {
-					const d = new Date(raw);
-					patch.deadline = isNaN(d.getTime()) ? raw : d.toISOString();
-				}
-			}
-
-			if (formData.has('course_id')) {
-				const cid = formData.get('course_id')?.toString() || null;
-				patch.course_id = cid;
-			}
-
-			if (Object.keys(patch).length === 0) {
-				return fail(400, { error: 'No updatable fields provided' });
-			}
-
-			const { error } = await supabase
-				.from('tasks')
-				.update(patch)
-				.eq('id', task_id)
-				.eq('user_id', user.id);
+			// Update the task
+			const { error } = await updateTask(supabase, taskId, authResult.userId, updates);
 
 			if (error) {
 				console.error('Supabase update error:', error);
 				return fail(500, { error: error.message });
 			}
 
-			return { success: true, updated: Object.keys(patch) };
+			return { success: true, updated: Object.keys(updates) };
 		} catch (err) {
 			console.error('updateTask action crashed:', err);
 			return fail(500, { error: 'Internal error while updating task' });
+		}
+	},
+
+	deleteTask: async ({ request, locals: { supabase } }) => {
+		try {
+			const authResult = await getAuthenticatedUser(supabase);
+			if (authResult.error) {
+				return fail(authResult.error.status, { error: authResult.error.message });
+			}
+
+			const formData = await request.formData();
+			const taskId = formData.get('task_id')?.toString();
+
+			if (!taskId) {
+				return fail(400, { error: 'Missing task_id' });
+			}
+
+			const { error } = await deleteTask(supabase, taskId, authResult.userId);
+
+			if (error) {
+				console.error('Supabase delete error:', error);
+				return fail(500, { error: error.message });
+			}
+
+			return { success: true };
+		} catch (err) {
+			console.error('deleteTask action crashed:', err);
+			return fail(500, { error: 'Internal error while deleting task' });
+		}
+	},
+
+	updateCourse: async ({ request, locals: { supabase } }) => {
+		const authResult = await getAuthenticatedUser(supabase);
+		if (authResult.error) {
+			return fail(authResult.error.status, { error: authResult.error.message });
+		}
+		const userId = authResult.userId;
+
+		const formData = await request.formData();
+		const courseId = formData.get('course_id')?.toString();
+		const name = formData.get('name')?.toString()?.trim();
+		const ectsPointsStr = formData.get('ects_points')?.toString();
+		const startDateStr = formData.get('start_date')?.toString();
+		const endDateStr = formData.get('end_date')?.toString();
+		const lectureWeekdaysStr = formData.get('lecture_weekdays')?.toString();
+
+		if (!courseId) {
+			return fail(400, { error: 'Missing course_id' });
+		}
+
+		const updates: {
+			name?: string;
+			ects_points?: number;
+			start_date?: string;
+			end_date?: string;
+			lecture_weekdays?: string;
+		} = {};
+
+		if (name) updates.name = name;
+		if (ectsPointsStr) updates.ects_points = Number(ectsPointsStr);
+		if (startDateStr) updates.start_date = startDateStr;
+		if (endDateStr) updates.end_date = endDateStr;
+		if (lectureWeekdaysStr) updates.lecture_weekdays = lectureWeekdaysStr;
+
+		if (Object.keys(updates).length === 0) {
+			return fail(400, { error: 'No fields to update' });
+		}
+
+		// Check if scheduling-related fields changed (requires task regeneration)
+		const schedulingFieldsChanged = 
+			updates.start_date !== undefined || 
+			updates.end_date !== undefined || 
+			updates.lecture_weekdays !== undefined ||
+			updates.ects_points !== undefined;
+
+		try {
+			// Update the course
+			const { error } = await updateCourse(supabase, courseId, userId, updates);
+
+			if (error) {
+				console.error('Error updating course:', error);
+				return fail(500, { error: error.message });
+			}
+
+			// If scheduling fields changed, regenerate tasks
+			if (schedulingFieldsChanged) {
+				const { error: regenError } = await regenerateCourseTasks(supabase, userId, courseId);
+				if (regenError) {
+					console.error('Error regenerating tasks:', regenError);
+					// Don't fail - course was updated successfully
+				}
+			}
+
+			return { success: true };
+		} catch (err) {
+			console.error('updateCourse action crashed:', err);
+			return fail(500, { error: 'Internal error while updating course' });
+		}
+	},
+
+	deleteCourse: async ({ request, locals: { supabase } }) => {
+		const authResult = await getAuthenticatedUser(supabase);
+		if (authResult.error) {
+			return fail(authResult.error.status, { error: authResult.error.message });
+		}
+		const userId = authResult.userId;
+
+		const formData = await request.formData();
+		const courseId = formData.get('course_id')?.toString();
+
+		if (!courseId) {
+			return fail(400, { error: 'Missing course_id' });
+		}
+
+		try {
+			// Delete tasks first to avoid orphaned records
+			const { error: tasksError } = await deleteTasksByCourse(supabase, courseId, userId);
+
+			if (tasksError) {
+				console.error('Error deleting tasks:', tasksError);
+				// Continue anyway - try to delete the course
+			}
+
+			// Delete the course
+			const { error: courseError } = await deleteCourse(supabase, courseId, userId);
+
+			if (courseError) {
+				console.error('Error deleting course:', courseError);
+				return fail(500, { error: 'Failed to delete course' });
+			}
+
+			return { success: true };
+		} catch (err) {
+			console.error('deleteCourse action crashed:', err);
+			return fail(500, { error: 'Internal error while deleting course' });
 		}
 	}
 };

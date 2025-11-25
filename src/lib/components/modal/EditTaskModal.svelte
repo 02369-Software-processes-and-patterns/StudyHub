@@ -51,15 +51,14 @@
 	<form
 		method="POST"
 		action="?/updateTask"
-		use:enhance={({ cancel }) => {
+		use:enhance={() => {
 			return async ({ result, update }) => {
 				if (result.type === 'success') {
 					dispatch('taskUpdated');
 					closeModal();
 				} else if (result.type === 'failure') {
-					type FailureData = { message?: string };
-					const msg = (result.data as FailureData | undefined)?.message ?? 'Unknown error';
-					errorMessage = msg;
+					type FailureData = { error?: string };
+					errorMessage = (result.data as FailureData | undefined)?.error ?? 'Unknown error';
 				}
 				await update();
 			};

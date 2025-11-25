@@ -26,18 +26,30 @@ export const load: LayoutLoad = async ({ data, depends, fetch }) => {
         },
       })
 
-  /**
-   * It's fine to use `getSession` here, because on the client, `getSession` is
-   * safe, and on the server, it reads `session` from the `LayoutData`, which
-   * safely checked the session using `safeGetSession`.
-   */
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  if (isBrowser()) {
+    // Client-side: validate with getUser() - this contacts Supabase Auth server
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    if (!user) {
+      return { session: null, supabase, user: null }
+    }
 
-  return { session, supabase, user }
+    // Create a minimal session object from the validated user
+    // We avoid getSession() entirely to prevent security warnings
+    const session = {
+      user,
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+    }
+
+    return { session, supabase, user }
+  }
+
+  // Server-side: use pre-validated data from +layout.server.ts
+  return { 
+    session: data.session, 
+    supabase, 
+    user: data.user 
+  }
 }

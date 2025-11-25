@@ -8,19 +8,16 @@
   let { session, user, supabase } = $derived(data)
 
   onMount(() => {
-    const { data } = supabase.auth.onAuthStateChange((_, newSession) => {
-      if (newSession?.expires_at !== session?.expires_at) {
+    const { data } = supabase.auth.onAuthStateChange((event, _newSession) => {
+      // Only invalidate on meaningful auth events
+      // We don't use the newSession parameter as it may be unvalidated
+      // Instead, invalidation triggers a re-fetch through our secure getUser() flow
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
         invalidate('supabase:auth')
       }
     })
 
     return () => data.subscription.unsubscribe()
-  })
-  
-  // Debug: log session and user
-  $effect(() => {
-    console.log('Session state:', session)
-    console.log('User state:', user)
   })
 </script>
 

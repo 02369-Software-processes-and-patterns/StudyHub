@@ -1,45 +1,37 @@
 import type { Actions, PageServerLoad } from './$types';
 import { fail } from '@sveltejs/kit';
+import {
+	getTasksWithCourse,
+	getCourseOptions,
+	getAuthenticatedUser,
+	createTask,
+	updateTask,
+	deleteTask,
+	markTasksCompleted,
+	parseTaskUpdateForm,
+	parseTaskCreateForm
+} from '$lib/server/db';
 
 export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 	try {
-		const {
-			data: { user },
-			error: userErr
-		} = await supabase.auth.getUser();
-		if (userErr) {
-			console.error('getUser error:', userErr);
+		const authResult = await getAuthenticatedUser(supabase);
+		if (authResult.error) {
 			return { tasks: [], courses: [] };
 		}
-		if (!user) return { tasks: [], courses: [] };
 
-		const { data: tasks, error: tasksError } = await supabase
-			.from('tasks')
-			.select(
-				`
-				id,
-				name,
-				effort_hours,
-				deadline,
-				status,
-				course_id,
-				created_at,
-				course:courses(id, name)
-			`
-			)
-			.eq('user_id', user.id)
-			.order('created_at', { ascending: false });
+		// Fetch tasks and courses in parallel
+		const [tasksResult, coursesResult] = await Promise.all([
+			getTasksWithCourse(supabase, authResult.userId, 'created_at'),
+			getCourseOptions(supabase, authResult.userId)
+		]);
 
-		const { data: courses, error: coursesError } = await supabase
-			.from('courses')
-			.select('id, name')
-			.eq('user_id', user.id)
-			.order('name');
+		if (tasksResult.error) console.error('Error loading tasks:', tasksResult.error);
+		if (coursesResult.error) console.error('Error loading courses:', coursesResult.error);
 
-		if (tasksError) console.error('Error loading tasks:', tasksError);
-		if (coursesError) console.error('Error loading courses:', coursesError);
-
-		return { tasks: tasks ?? [], courses: courses ?? [] };
+		return {
+			tasks: tasksResult.data ?? [],
+			courses: coursesResult.data ?? []
+		};
 	} catch (err) {
 		console.error('LOAD /tasks crashed:', err);
 		return { tasks: [], courses: [] };
@@ -47,45 +39,24 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 };
 
 export const actions: Actions = {
-	/** POST ?/create — opret task */
+	/** POST ?/create — create a new task */
 	create: async ({ request, locals: { supabase } }) => {
 		try {
-			const {
-				data: { user },
-				error: userErr
-			} = await supabase.auth.getUser();
-			if (userErr) return fail(401, { error: userErr.message });
-			if (!user) return fail(401, { error: 'Not authenticated' });
+			const authResult = await getAuthenticatedUser(supabase);
+			if (authResult.error) {
+				return fail(authResult.error.status, { error: authResult.error.message });
+			}
 
 			const formData = await request.formData();
-			const name = formData.get('name')?.toString()?.trim();
-			const effortStr = formData.get('effort_hours')?.toString();
-			const course_id = formData.get('course_id')?.toString() || null;
-			const deadlineRaw = formData.get('deadline')?.toString();
+			const { data: taskData, error: parseError } = parseTaskCreateForm(formData);
 
-			if (!name) return fail(400, { error: 'Missing name' });
-			if (!effortStr) return fail(400, { error: 'Missing effort_hours' });
-
-			// DB-fejl viste at effort_hours er INT → rund af for nu.
-			let effort_hours = Number.parseFloat(effortStr);
-			if (!Number.isFinite(effort_hours) || effort_hours < 0) {
-				return fail(400, { error: 'effort_hours must be a non-negative number' });
-			}
-			effort_hours = Math.round(effort_hours);
-
-			let deadline: string | null = null;
-			if (deadlineRaw) {
-				const d = new Date(deadlineRaw);
-				deadline = isNaN(d.getTime()) ? deadlineRaw : d.toISOString();
+			if (parseError || !taskData) {
+				return fail(400, { error: parseError ?? 'Invalid form data' });
 			}
 
-			const { error } = await supabase.from('tasks').insert({
-				user_id: user.id,
-				name,
-				effort_hours,
-				course_id,
-				deadline,
-				status: 'pending'
+			const { error } = await createTask(supabase, {
+				...taskData,
+				user_id: authResult.userId
 			});
 
 			if (error) {
@@ -100,112 +71,90 @@ export const actions: Actions = {
 		}
 	},
 
-	/** POST ?/updateTask — opdater felter (status mm.) */
+	/** POST ?/updateTask — update task fields (status, name, etc.) */
 	updateTask: async ({ request, locals: { supabase } }) => {
 		try {
-			const {
-				data: { user },
-				error: userErr
-			} = await supabase.auth.getUser();
-			if (userErr) return fail(401, { error: userErr.message });
-			if (!user) return fail(401, { error: 'Not authenticated' });
+			const authResult = await getAuthenticatedUser(supabase);
+			if (authResult.error) {
+				return fail(authResult.error.status, { error: authResult.error.message });
+			}
 
 			const formData = await request.formData();
-			const task_id = formData.get('task_id')?.toString();
-			if (!task_id) return fail(400, { error: 'Missing task_id' });
+			const { taskId, updates, error: parseError } = parseTaskUpdateForm(formData);
 
-			const patch: Record<string, unknown> = {};
-
-			if (formData.has('status')) {
-				const raw = formData.get('status')?.toString().toLowerCase();
-				const allowed = ['pending', 'todo', 'on-hold', 'working', 'completed'] as const;
-				if (!raw || !allowed.includes(raw as (typeof allowed)[number])) {
-					return fail(400, { error: 'Invalid status value' });
-				}
-				patch.status = raw;
+			if (parseError || !taskId) {
+				return fail(400, { error: parseError ?? 'Missing task_id' });
 			}
 
-			if (formData.has('name')) {
-				const name = formData.get('name')?.toString()?.trim();
-				if (name) patch.name = name;
-			}
-
-			if (formData.has('effort_hours')) {
-				let num = Number.parseFloat(formData.get('effort_hours')?.toString() ?? '');
-				if (!Number.isFinite(num) || num < 0) return fail(400, { error: 'Invalid effort_hours' });
-				// rund til heltal hvis kolonnen er INT
-				num = Math.round(num);
-				patch.effort_hours = num;
-			}
-
-			if (formData.has('deadline')) {
-				const raw = formData.get('deadline')?.toString();
-				if (raw) {
-					const d = new Date(raw);
-					patch.deadline = isNaN(d.getTime()) ? raw : d.toISOString();
-				}
-			}
-
-			if (formData.has('course_id')) {
-				const cid = formData.get('course_id')?.toString() || null;
-				patch.course_id = cid;
-			}
-
-			if (Object.keys(patch).length === 0) {
-				return fail(400, { error: 'No updatable fields provided' });
-			}
-
-			const { error } = await supabase
-				.from('tasks')
-				.update(patch)
-				.eq('id', task_id)
-				.eq('user_id', user.id);
+			const { error } = await updateTask(supabase, taskId, authResult.userId, updates);
 
 			if (error) {
 				console.error('Supabase update error:', error);
 				return fail(500, { error: error.message });
 			}
 
-			return { success: true, updated: Object.keys(patch) };
+			return { success: true, updated: Object.keys(updates) };
 		} catch (err) {
 			console.error('updateTask action crashed:', err);
 			return fail(500, { error: 'Internal error while updating task' });
 		}
 	},
 
-	/** POST ?/updateTasksBatch — opdater multiple tasks til completed */
+	/** POST ?/updateTasksBatch — mark multiple tasks as completed */
 	updateTasksBatch: async ({ request, locals: { supabase } }) => {
 		try {
-			const {
-				data: { user },
-				error: userErr
-			} = await supabase.auth.getUser();
-			if (userErr) return fail(401, { error: userErr.message });
-			if (!user) return fail(401, { error: 'Not authenticated' });
+			const authResult = await getAuthenticatedUser(supabase);
+			if (authResult.error) {
+				return fail(authResult.error.status, { error: authResult.error.message });
+			}
 
 			const formData = await request.formData();
-			const taskIds = formData.getAll('task_ids');
+			const taskIds = formData.getAll('task_ids').map(String);
 
 			if (taskIds.length === 0) {
 				return fail(400, { error: 'No task IDs provided' });
 			}
 
-			const { data: updatedRows, error } = await supabase
-				.from('tasks')
-				.update({ status: 'completed' })
-				.in('id', taskIds)
-				.eq('user_id', user.id)
-				.select('id'); 
+			const { data, error } = await markTasksCompleted(supabase, taskIds, authResult.userId);
 
 			if (error) {
 				console.error('Supabase batch update error:', error);
 				return fail(500, { error: error.message });
 			}
 
-			return { success: true, updated: updatedRows ? updatedRows.length : 0 };
+			return { success: true, updated: data?.length ?? 0 };
 		} catch (err) {
 			console.error('updateTasksBatch action crashed:', err);
 			return fail(500, { error: 'Internal error while updating tasks' });
+		}
+	},
+
+	/** POST ?/deleteTask — delete a single task */
+	deleteTask: async ({ request, locals: { supabase } }) => {
+		try {
+			const authResult = await getAuthenticatedUser(supabase);
+			if (authResult.error) {
+				return fail(authResult.error.status, { error: authResult.error.message });
+			}
+
+			const formData = await request.formData();
+			const taskId = formData.get('task_id')?.toString();
+
+			if (!taskId) {
+				return fail(400, { error: 'Missing task_id' });
+			}
+
+			const { error } = await deleteTask(supabase, taskId, authResult.userId);
+
+			if (error) {
+				console.error('Supabase delete error:', error);
+				return fail(500, { error: error.message });
+			}
+
+			return { success: true };
+		} catch (err) {
+			console.error('deleteTask action crashed:', err);
+			return fail(500, { error: 'Internal error while deleting task' });
 		}
 	}
 };

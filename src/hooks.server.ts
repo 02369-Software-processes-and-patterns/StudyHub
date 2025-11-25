@@ -27,25 +27,25 @@ const supabase: Handle = async ({ event, resolve }) => {
   })
 
   /**
-   * Unlike `supabase.auth.getSession()`, which returns the session _without_
-   * validating the JWT, this function also calls `getUser()` to validate the
-   * JWT before returning the session.
+   * Securely get the session by validating with getUser().
+   * We never call getSession() directly as it returns unvalidated data.
+   * Instead, we construct a minimal session object from the validated user.
    */
   event.locals.safeGetSession = async () => {
-    const {
-      data: { session },
-    } = await event.locals.supabase.auth.getSession()
-    if (!session) {
-      return { session: null, user: null }
-    }
-
     const {
       data: { user },
       error,
     } = await event.locals.supabase.auth.getUser()
-    if (error) {
-      // JWT validation has failed
+
+    if (error || !user) {
       return { session: null, user: null }
+    }
+
+    // Create a minimal session object with just what we need
+    // This avoids calling getSession() which triggers security warnings
+    const session = {
+      user,
+      expires_at: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now (approximate)
     }
 
     return { session, user }

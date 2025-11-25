@@ -3,6 +3,7 @@
 	import EmptyState from './EmptyState.svelte';
 	import Modal from '../modal/Modal.svelte';
 	import { createEventDispatcher } from 'svelte';
+	import { invalidateAll } from '$app/navigation';
 
 	type Course = {
 		id: string | number;
@@ -10,12 +11,14 @@
 		ects_points: number;
 		start_date?: string | null;
 		end_date?: string | null;
+		lecture_weekdays?: number[] | string | null;
 	};
 
 	export let courses: Course[] = [];
 	export let maxCourses: number | null = null; // null = show all courses
 	export let showViewAll: boolean = true;
 	export let showStartDate: boolean = true; // Control whether to show start date column
+	export let openEdit: ((course: Course) => void) | null = null;
 
 	const dispatch = createEventDispatcher<{ delete: string | number }>();
 
@@ -70,6 +73,8 @@
 			if (response.ok) {
 				closeDeleteModal();
 				dispatch('delete', courseToDelete.id);
+				// Refresh the page data
+				await invalidateAll();
 			} else {
 				deleteError = 'Failed to delete course. Please try again.';
 			}
@@ -107,7 +112,16 @@
 				</thead>
 				<tbody class="divide-y divide-gray-200 bg-white">
 					{#each sortedCourses as course (course.id)}
-						<tr class="transition hover:bg-gray-50">
+						<tr 
+							class="transition hover:bg-gray-50 {openEdit ? 'cursor-pointer' : ''}"
+							on:click={(e) => {
+								if (!openEdit) return;
+								// Don't open edit if clicking on interactive elements
+								const target = e.target as HTMLElement;
+								if (target.closest('button')) return;
+								openEdit(course);
+							}}
+						>
 							<td class="px-2 py-2 text-xs sm:px-4 md:px-6 md:py-4">
 								<div class="font-semibold text-gray-900 sm:text-sm">{course.name}</div>
 							</td>
