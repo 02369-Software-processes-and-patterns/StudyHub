@@ -6,7 +6,10 @@
 		role: 'Owner' | 'Admin' | 'Member';
 	};
 
-	export let members: Member[] = [];
+	type Props = {
+		members?: Member[];
+	};
+	let { members = [] }: Props = $props();
 
 	function getInitials(name: string): string {
 		const parts = name.trim().split(' ');
@@ -80,6 +83,7 @@
 
 				<!-- Action Buttons -->
 				<div class="mt-4 flex gap-2 border-t border-gray-100 pt-3">
+					<!-- TODO: Connect Profile button to view member profile details -->
 					<button
 						type="button"
 						class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 transition-colors"
@@ -91,6 +95,7 @@
 						Profile
 					</button>
 					{#if member.role !== 'Owner'}
+						<!-- TODO: Connect Remove button to delete member from project and handle API call -->
 						<button
 							type="button"
 							class="inline-flex items-center justify-center rounded-lg bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"

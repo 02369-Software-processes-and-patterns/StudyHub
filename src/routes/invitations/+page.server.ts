@@ -7,8 +7,8 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 		return { invitations: [] };
 	}
 
-	// For nu returnerer vi tom array da vi kun fokuserer på UI
-	// Når backend-logik er klar, henter vi fra database
+	// // For now we return an empty array as we're only focusing on UI
+	// When backend logic is ready, we'll fetch from database
 	const invitations: any[] = [];
 
 	return { invitations };

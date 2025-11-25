@@ -24,17 +24,21 @@
 
 	function handleAccept(id: string) {
 		loadingStates[id] = true;
-		// Simulate API call
+		// TODO: Connect to actual backend API endpoint
+		// This is a placeholder - actual implementation will call server action
 		setTimeout(() => {
 			loadingStates[id] = false;
+			console.log('Accept invitation:', id);
 		}, 1000);
 	}
 
 	function handleDecline(id: string) {
 		loadingStates[id] = true;
-		// Simulate API call
+		// TODO: Connect to actual backend API endpoint
+		// This is a placeholder - actual implementation will call server action
 		setTimeout(() => {
 			loadingStates[id] = false;
+			console.log('Decline invitation:', id);
 		}, 1000);
 	}
 </script>
