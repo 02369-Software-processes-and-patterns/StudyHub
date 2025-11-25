@@ -6,7 +6,7 @@
 
 	// data comes from the load function in +page.ts
     export let data: PageData;
-
+    
     // reactive variables updated when data changes
     $: project = data.project;
     $: userRole = data.userRole;
@@ -28,7 +28,6 @@
     <div class="p-8 text-center text-gray-500">Project not found or error loading project.</div>
 {:else}
     <div class="container mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <!-- Project Header -->
         <div class="mb-8 rounded-2xl border border-gray-100 bg-white shadow-lg overflow-hidden">
             <div class="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-8 sm:px-8">
                 <div class="flex items-start justify-between">
@@ -71,7 +70,6 @@
             </div>
         </div>
 
-        <!-- Team Members Section with Invite Button -->
         <div class="mb-8 rounded-2xl border border-gray-100 bg-white shadow-lg overflow-hidden">
             <div class="border-b border-gray-100 bg-gradient-to-r from-purple-50 to-pink-50 px-6 py-4">
                 <div class="flex items-center justify-between">
@@ -87,18 +85,43 @@
                         </div>
                     </div>
                     
-                    {#if canInvite}
-                        <button
-                            type="button"
-                            on:click={() => (showInviteModal = true)}
-                            class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-purple-600 shadow-sm border border-purple-200 hover:bg-purple-50 transition-colors"
-                        >
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                            </svg>
-                            Invite Member
-                        </button>
-                    {/if}
+                    <div class="flex items-center gap-2">
+                        {#if userRole !== 'Owner'}
+                            <form 
+                                method="POST" 
+                                action="?/leaveProject" 
+                                on:submit|preventDefault={(e) => {
+                                    if(confirm('Are you sure you want to leave this project?')) {
+                                        e.currentTarget.submit();
+                                    }
+                                }}
+                            >
+                                <button
+                                    type="submit"
+                                    class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-red-600 shadow-sm border border-red-200 hover:bg-red-50 transition-colors"
+                                    title="Leave Project"
+                                >
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                    </svg>
+                                    Leave
+                                </button>
+                            </form>
+                        {/if}
+
+                        {#if canInvite}
+                            <button
+                                type="button"
+                                on:click={() => (showInviteModal = true)}
+                                class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-purple-600 shadow-sm border border-purple-200 hover:bg-purple-50 transition-colors"
+                            >
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                </svg>
+                                Invite Member
+                            </button>
+                        {/if}
+                    </div>
                 </div>
             </div>
             
@@ -107,9 +130,7 @@
             </div>
         </div>
 
-        <!-- Placeholder for future sections -->
         <div class="grid gap-8 md:grid-cols-2">
-            <!-- Tasks Section Placeholder -->
             <div class="rounded-2xl border border-gray-100 bg-white shadow-lg p-6">
                 <div class="flex items-center gap-3 mb-4">
                     <div class="rounded-lg bg-purple-100 p-2">
@@ -122,7 +143,6 @@
                 <p class="text-gray-500 text-sm">Task management coming soon...</p>
             </div>
 
-            <!-- Activity Section Placeholder -->
             <div class="rounded-2xl border border-gray-100 bg-white shadow-lg p-6">
                 <div class="flex items-center gap-3 mb-4">
                     <div class="rounded-lg bg-blue-100 p-2">

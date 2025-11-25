@@ -798,5 +798,23 @@ export async function regenerateCourseTasks(
 	}
 
 	return { error: null };
+	
+}
+
+/**
+ * Remove a user from a project (Used when leaving a project or removing a member)
+ */
+export async function removeProjectMember(
+	supabase: TypedSupabaseClient,
+	projectId: string,
+	userId: string
+): Promise<{ error: Error | null }> {
+	const { error } = await supabase
+		.from('project_members')
+		.delete()
+		.eq('project_id', projectId)
+		.eq('user_id', userId);
+
+	return { error };
 }
 
