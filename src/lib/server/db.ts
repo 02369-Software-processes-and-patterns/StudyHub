@@ -494,38 +494,20 @@ export async function createProject(
 		status?: ProjectStatus;
 	}
 ): Promise<{ data: Project | null; error: Error | null }> {
-	// Insert the project
-	const { data: newProject, error: projectError } = await supabase
-		.from('projects')
-		.insert({
-			name: projectData.name,
-			description: projectData.description,
-			course_id: projectData.course_id || null,
-			status: projectData.status || 'planning'
-		})
-		.select()
-		.single();
+	// Use RPC function to create project and add owner atomically
+	// This bypasses RLS issues and ensures both operations succeed together
+	const { data, error } = await (supabase as any).rpc('create_project_with_owner', {
+		p_name: projectData.name,
+		p_description: projectData.description,
+		p_course_id: projectData.course_id || null,
+		p_status: projectData.status || 'planning'
+	});
 
-	if (projectError || !newProject) {
-		return { data: null, error: projectError || new Error('Failed to create project') };
+	if (error) {
+		return { data: null, error };
 	}
 
-	// Add the user as the owner
-	const { error: memberError } = await supabase
-		.from('project_members')
-		.insert({
-			project_id: newProject.id,
-			user_id: userId,
-			role: 'Owner'
-		});
-
-	if (memberError) {
-		// Clean up the project if we couldn't add the owner
-		await supabase.from('projects').delete().eq('id', newProject.id);
-		return { data: null, error: memberError };
-	}
-
-	return { data: newProject as Project, error: null };
+	return { data: data as Project, error: null };
 }
 
 /**

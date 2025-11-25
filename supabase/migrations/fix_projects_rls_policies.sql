@@ -1,18 +1,17 @@
--- Drop all existing policies explicitly
-DROP POLICY "Authenticated users can create projects" ON projects;
-DROP POLICY "Users can view their projects" ON projects;
-DROP POLICY "Project owners and admins can update projects" ON projects;
-DROP POLICY "Only owners can delete projects" ON projects;
-DROP POLICY "Allow inserting project members" ON project_members;
-DROP POLICY "Users can view project members" ON project_members;
-DROP POLICY "Owners and admins can update members" ON project_members;
-DROP POLICY "Owners and admins can remove members" ON project_members;
+-- Fix RLS policies for projects table
+-- Uses IF EXISTS to avoid errors when policies don't exist
 
--- Completely disable and re-enable RLS to ensure clean state
-ALTER TABLE projects DISABLE ROW LEVEL SECURITY;
-ALTER TABLE project_members DISABLE ROW LEVEL SECURITY;
+-- Drop all existing policies explicitly (with IF EXISTS to avoid errors)
+DROP POLICY IF EXISTS "Authenticated users can create projects" ON projects;
+DROP POLICY IF EXISTS "Users can view their projects" ON projects;
+DROP POLICY IF EXISTS "Project owners and admins can update projects" ON projects;
+DROP POLICY IF EXISTS "Only owners can delete projects" ON projects;
+DROP POLICY IF EXISTS "Allow inserting project members" ON project_members;
+DROP POLICY IF EXISTS "Users can view project members" ON project_members;
+DROP POLICY IF EXISTS "Owners and admins can update members" ON project_members;
+DROP POLICY IF EXISTS "Owners and admins can remove members" ON project_members;
 
--- Re-enable RLS
+-- Ensure RLS is enabled
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE project_members ENABLE ROW LEVEL SECURITY;
 
@@ -23,7 +22,7 @@ FOR INSERT
 TO authenticated
 WITH CHECK (true);
 
--- Policy: Users can view projects they are members of OR projects they just created
+-- Policy: Users can view projects they are members of
 CREATE POLICY "Users can view their projects"
 ON projects
 FOR SELECT
@@ -67,9 +66,6 @@ USING (
   )
 );
 
--- Enable RLS on project_members table if not already enabled
-ALTER TABLE project_members ENABLE ROW LEVEL SECURITY;
-
 -- Policy: Allow inserting project members (needed for project creation)
 CREATE POLICY "Allow inserting project members"
 ON project_members
@@ -82,8 +78,7 @@ CREATE POLICY "Users can view project members"
 ON project_members
 FOR SELECT
 TO authenticated
-USING (true); -- Allow viewing all project members if you're authenticated
--- Note: You can only see projects you're a member of due to the projects RLS policy
+USING (true);
 
 -- Policy: Project owners and admins can update members (except changing owner)
 CREATE POLICY "Owners and admins can update members"
@@ -97,7 +92,7 @@ USING (
     WHERE pm.user_id = auth.uid() 
     AND pm.role IN ('Owner', 'Admin')
   )
-  AND role != 'Owner' -- Cannot modify owner role
+  AND role != 'Owner'
 );
 
 -- Policy: Project owners and admins can remove members (except owners)
@@ -106,7 +101,7 @@ ON project_members
 FOR DELETE
 TO authenticated
 USING (
-  role != 'Owner' -- Cannot remove owners
+  role != 'Owner'
   AND project_id IN (
     SELECT pm.project_id 
     FROM project_members pm 
@@ -114,3 +109,4 @@ USING (
     AND pm.role IN ('Owner', 'Admin')
   )
 );
+
