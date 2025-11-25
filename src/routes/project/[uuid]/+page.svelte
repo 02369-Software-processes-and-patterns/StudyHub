@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
     import InviteMemberModal from '$lib/components/modal/InviteMemberModal.svelte';
+    import ProjectMembers from '$lib/components/project/ProjectMembers.svelte';
     import type { PageData } from './$types';
 
 	// data comes from the load function in +page.ts
@@ -9,6 +10,7 @@
     // reactive variables updated when data changes
     $: project = data.project;
     $: userRole = data.userRole;
+    $: members = data.members || [];
 
     // Checks if the user has permission to invite (Owner or Admin)
     $: canInvite = userRole === 'Owner' || userRole === 'Admin';
@@ -81,7 +83,7 @@
                         </div>
                         <div>
                             <h2 class="text-lg font-bold text-gray-900">Team Members</h2>
-                            <p class="text-sm text-gray-500">Manage project collaborators</p>
+                            <p class="text-sm text-gray-500">{members.length} {members.length === 1 ? 'member' : 'members'}</p>
                         </div>
                     </div>
                     
@@ -101,7 +103,7 @@
             </div>
             
             <div class="p-6">
-                <p class="text-gray-500 text-sm">Team member management coming soon...</p>
+                <ProjectMembers {members} />
             </div>
         </div>
 
