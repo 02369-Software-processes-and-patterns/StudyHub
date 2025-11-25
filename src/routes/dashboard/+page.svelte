@@ -4,15 +4,33 @@
 	import CourseList from '$lib/components/list/CourseList.svelte';
 	import WorkloadList from '$lib/components/list/WorkloadList.svelte';
 	import EditTaskModal from '$lib/components/modal/EditTaskModal.svelte';
+	import EditCourseModal from '$lib/components/modal/EditCourseModal.svelte';
 
 	export let data;
 
-	let isEditOpen = false;
+	// Task edit state
+	let isTaskEditOpen = false;
 	let taskToEdit: { id: string | number; name: string; effort_hours?: number | null; course_id?: string | null; deadline?: string | null; } | null = null;
 
-	function openEdit(task: { id: string | number; name: string; effort_hours?: number | null; course_id?: string | null; deadline?: string | null; }) {
+	// Course edit state
+	let isCourseEditOpen = false;
+	let courseToEdit: {
+		id: string | number;
+		name: string;
+		ects_points: number;
+		start_date?: string | null;
+		end_date?: string | null;
+		lecture_weekdays?: number[] | string | null;
+	} | null = null;
+
+	function openTaskEdit(task: typeof taskToEdit) {
 		taskToEdit = task;
-		isEditOpen = true;
+		isTaskEditOpen = true;
+	}
+
+	function openCourseEdit(course: typeof courseToEdit) {
+		courseToEdit = course;
+		isCourseEditOpen = true;
 	}
 </script>
 
@@ -38,12 +56,12 @@
 	<div class="mb-16 grid gap-8 md:grid-cols-3">
 		<!-- Upcoming Tasks -->
 		<div class="md:col-span-2">
-			<TaskList tasks={data.tasks} maxTasks={6} openEdit={openEdit} />
+			<TaskList tasks={data.tasks} maxTasks={6} openEdit={openTaskEdit} />
 		</div>
 
 		<!-- My Courses -->
 		<div class="md:col-span-1">
-			<CourseList courses={data.courses} maxCourses={6} showStartDate={false} />
+			<CourseList courses={data.courses} maxCourses={6} showStartDate={false} openEdit={openCourseEdit} />
 		</div>
 	</div>
 
@@ -70,8 +88,14 @@
 </div>
 
 <EditTaskModal
-	bind:isOpen={isEditOpen}
+	bind:isOpen={isTaskEditOpen}
 	task={taskToEdit}
 	courses={data.courses}
 	on:taskUpdated={() => invalidateAll()}
+/>
+
+<EditCourseModal
+	bind:isOpen={isCourseEditOpen}
+	course={courseToEdit}
+	on:courseUpdated={() => invalidateAll()}
 />

@@ -6,6 +6,7 @@ import {
 	getAuthenticatedUser,
 	createTask,
 	updateTask,
+	deleteTask,
 	markTasksCompleted,
 	parseTaskUpdateForm,
 	parseTaskCreateForm
@@ -125,6 +126,35 @@ export const actions: Actions = {
 		} catch (err) {
 			console.error('updateTasksBatch action crashed:', err);
 			return fail(500, { error: 'Internal error while updating tasks' });
+		}
+	},
+
+	/** POST ?/deleteTask — delete a single task */
+	deleteTask: async ({ request, locals: { supabase } }) => {
+		try {
+			const authResult = await getAuthenticatedUser(supabase);
+			if (authResult.error) {
+				return fail(authResult.error.status, { error: authResult.error.message });
+			}
+
+			const formData = await request.formData();
+			const taskId = formData.get('task_id')?.toString();
+
+			if (!taskId) {
+				return fail(400, { error: 'Missing task_id' });
+			}
+
+			const { error } = await deleteTask(supabase, taskId, authResult.userId);
+
+			if (error) {
+				console.error('Supabase delete error:', error);
+				return fail(500, { error: error.message });
+			}
+
+			return { success: true };
+		} catch (err) {
+			console.error('deleteTask action crashed:', err);
+			return fail(500, { error: 'Internal error while deleting task' });
 		}
 	}
 };

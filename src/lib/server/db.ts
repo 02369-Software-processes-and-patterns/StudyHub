@@ -158,6 +158,23 @@ export async function deleteTasksByCourse(
 }
 
 /**
+ * Delete a single task by ID
+ */
+export async function deleteTask(
+	supabase: TypedSupabaseClient,
+	taskId: string,
+	userId: string
+): Promise<{ error: Error | null }> {
+	const { error } = await supabase
+		.from('tasks')
+		.delete()
+		.eq('id', taskId)
+		.eq('user_id', userId);
+
+	return { error };
+}
+
+/**
  * Bulk insert tasks (used for auto-generating tasks from courses)
  */
 export async function createTasksBatch(
@@ -239,6 +256,30 @@ export async function deleteCourse(
 	const { error } = await supabase
 		.from('courses')
 		.delete()
+		.eq('id', courseId)
+		.eq('user_id', userId);
+
+	return { error };
+}
+
+/**
+ * Update a course by ID
+ */
+export async function updateCourse(
+	supabase: TypedSupabaseClient,
+	courseId: string,
+	userId: string,
+	updates: {
+		name?: string;
+		ects_points?: number;
+		start_date?: string;
+		end_date?: string;
+		lecture_weekdays?: string;
+	}
+): Promise<{ error: Error | null }> {
+	const { error } = await supabase
+		.from('courses')
+		.update(updates)
 		.eq('id', courseId)
 		.eq('user_id', userId);
 
