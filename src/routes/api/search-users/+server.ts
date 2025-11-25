@@ -16,7 +16,9 @@ export const GET: RequestHandler = async ({ url, locals: { supabase, safeGetSess
 
 	try {
 		// Search for users in auth.users by email or name
-		const { data, error } = await supabase.rpc('search_users_by_email_or_name', {
+		// Using type assertion since this RPC function is defined in the database but not in the generated types
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC functions aren't typed in database.types.ts
+		const { data, error } = await (supabase as any).rpc('search_users_by_email_or_name', {
 			search_query: query
 		});
 

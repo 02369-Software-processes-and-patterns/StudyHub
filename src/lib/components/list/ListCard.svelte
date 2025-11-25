@@ -9,7 +9,9 @@
 </script>
 
 <div class="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-lg">
-	<div class="mb-4 flex flex-col gap-3 p-4 pb-0 sm:flex-row sm:items-center sm:justify-between sm:mb-6 sm:p-6">
+	<div
+		class="mb-4 flex flex-col gap-3 p-4 pb-0 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:p-6"
+	>
 		<h2 class="text-xl font-bold text-gray-900 sm:text-2xl md:text-3xl">{title}</h2>
 		{#if showViewAll && totalCount !== null && displayCount !== null && totalCount > displayCount}
 			<button

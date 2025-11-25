@@ -1,5 +1,13 @@
 <script lang="ts">
-	export let tasks: any[] = [];
+	type Task = {
+		id: string | number;
+		name: string;
+		status: string;
+		deadline: string;
+		effort_hours: number;
+	};
+
+	export let tasks: Task[] = [];
 	export let maxTasks: number | undefined = undefined;
 	export let showViewAll: boolean = true;
 
@@ -29,37 +37,42 @@
 
 	function formatDeadline(deadline: string): string {
 		const date = new Date(deadline);
-		return date.toLocaleDateString('en-US', { 
-			month: 'short', 
-			day: 'numeric', 
-			year: 'numeric' 
+		return date.toLocaleDateString('en-US', {
+			month: 'short',
+			day: 'numeric',
+			year: 'numeric'
 		});
 	}
 </script>
 
-<div class="bg-white rounded-2xl shadow-lg p-8 mb-16 border border-gray-100">
-	<div class="flex items-center justify-between mb-6">
+<div class="mb-16 rounded-2xl border border-gray-100 bg-white p-8 shadow-lg">
+	<div class="mb-6 flex items-center justify-between">
 		<h2 class="text-3xl font-bold text-gray-900">Upcoming Tasks</h2>
 		{#if showViewAll}
-			<a href="/tasks" class="text-indigo-600 hover:text-indigo-700 font-semibold text-sm">
+			<a href="/tasks" class="text-sm font-semibold text-indigo-600 hover:text-indigo-700">
 				View All →
 			</a>
 		{/if}
 	</div>
 	<div class="space-y-3">
 		{#each displayedTasks as task (task.id)}
-			<div class="flex items-center gap-6 p-4 rounded-xl hover:bg-gray-50 transition-colors border border-gray-100">
-				<input type="checkbox" class="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500">
-				<div class="flex-1 flex items-center gap-8">
+			<div
+				class="flex items-center gap-6 rounded-xl border border-gray-100 p-4 transition-colors hover:bg-gray-50"
+			>
+				<input
+					type="checkbox"
+					class="h-5 w-5 rounded text-indigo-600 focus:ring-2 focus:ring-indigo-500"
+				/>
+				<div class="flex flex-1 items-center gap-8">
 					<div class="flex-1">
 						<h3 class="font-semibold text-gray-900">{task.name}</h3>
 					</div>
 					<div class="min-w-[140px]">
-						<h4 class="font-semibold text-gray-900 text-sm mb-1">Deadline</h4>
+						<h4 class="mb-1 text-sm font-semibold text-gray-900">Deadline</h4>
 						<p class="text-sm text-gray-500">{formatDeadline(task.deadline)}</p>
 					</div>
 					<div class="min-w-[140px]">
-						<h4 class="font-semibold text-gray-900 text-sm mb-1">Estimated time</h4>
+						<h4 class="mb-1 text-sm font-semibold text-gray-900">Estimated time</h4>
 						<p class="text-sm text-gray-500">{task.effort_hours} hours</p>
 					</div>
 				</div>

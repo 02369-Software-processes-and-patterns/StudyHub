@@ -9,17 +9,29 @@
 
 	let isModalOpen = false;
 	let isEditOpen = false;
-	let taskToEdit: { id: string | number; name: string; effort_hours?: number | null; course_id?: string | null; deadline?: string | null; } | null = null;
+	let taskToEdit: {
+		id: string | number;
+		name: string;
+		effort_hours?: number | null;
+		course_id?: string | null;
+		deadline?: string | null;
+	} | null = null;
 
 	async function handleTaskAdded() {
 		await invalidateAll();
 		isModalOpen = false;
 	}
 
-	function openEdit(task: { id: string | number; name: string; effort_hours?: number | null; course_id?: string | null; deadline?: string | null; }) {
+	function openEdit(task: {
+		id: string | number;
+		name: string;
+		effort_hours?: number | null;
+		course_id?: string | null;
+		deadline?: string | null;
+	}) {
 		taskToEdit = task;
 		isEditOpen = true;
-}
+	}
 
 	$: totalTasks = data.tasks?.length ?? 0;
 	$: pendingTasks = data.tasks?.filter((t) => t.status === 'pending').length ?? 0;
@@ -51,7 +63,7 @@
 		<header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between md:mb-8">
 			<div>
 				<h1
-					class="mb-2 bg-gradient-to-r from-violet-600 to-blue-600 bg-clip-text text-2xl leading-tight font-bold text-transparent sm:text-3xl md:text-4xl md:mb-3"
+					class="mb-2 bg-gradient-to-r from-violet-600 to-blue-600 bg-clip-text text-2xl leading-tight font-bold text-transparent sm:text-3xl md:mb-3 md:text-4xl"
 				>
 					My Tasks
 				</h1>
@@ -86,7 +98,7 @@
 
 		{#if data.tasks && data.tasks.length > 0}
 			<div class="space-y-3">
-				<TaskList tasks={data.tasks} openEdit={openEdit} />
+				<TaskList tasks={data.tasks} {openEdit} />
 			</div>
 		{:else}
 			<div class="py-12 text-center">
@@ -102,11 +114,7 @@
 	</div>
 </div>
 
-<AddTaskModal 
-	bind:isOpen={isModalOpen} 
-	courses={data.courses} 
-	on:taskAdded={handleTaskAdded} 
-	/>
+<AddTaskModal bind:isOpen={isModalOpen} courses={data.courses} on:taskAdded={handleTaskAdded} />
 
 <EditTaskModal
 	bind:isOpen={isEditOpen}

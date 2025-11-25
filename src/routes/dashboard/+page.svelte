@@ -14,7 +14,7 @@
 	$: dashboardTasks = (() => {
 		// Get incomplete tasks sorted by deadline (soonest first)
 		const incompleteTasks = data.tasks
-			.filter(task => task.status !== 'completed')
+			.filter((task) => task.status !== 'completed')
 			.sort((a, b) => {
 				const aDeadline = a.deadline ? new Date(a.deadline).getTime() : Infinity;
 				const bDeadline = b.deadline ? new Date(b.deadline).getTime() : Infinity;
@@ -30,7 +30,7 @@
 
 		// Fill remaining slots with completed tasks (most recent deadline first)
 		const completedTasks = data.tasks
-			.filter(task => task.status === 'completed')
+			.filter((task) => task.status === 'completed')
 			.sort((a, b) => {
 				const aDeadline = a.deadline ? new Date(a.deadline).getTime() : 0;
 				const bDeadline = b.deadline ? new Date(b.deadline).getTime() : 0;
@@ -43,7 +43,13 @@
 
 	// Task edit state
 	let isTaskEditOpen = false;
-	let taskToEdit: { id: string | number; name: string; effort_hours?: number | null; course_id?: string | null; deadline?: string | null; } | null = null;
+	let taskToEdit: {
+		id: string | number;
+		name: string;
+		effort_hours?: number | null;
+		course_id?: string | null;
+		deadline?: string | null;
+	} | null = null;
 
 	// Course edit state
 	let isCourseEditOpen = false;
@@ -67,7 +73,7 @@
 	}
 </script>
 
-<div class="container mx-auto max-w-8xl px-4 py-12">
+<div class="max-w-8xl container mx-auto px-4 py-12">
 	<!-- Hero Section -->
 	<div class="mt-4 mb-8 text-center md:mt-8 md:mb-16">
 		<h1
@@ -75,7 +81,7 @@
 		>
 			Welcome to StudyHub
 		</h1>
-		<p class="mx-auto max-w-2xl text-base text-gray-600 sm:text-lg md:text-xl px-4">
+		<p class="mx-auto max-w-2xl px-4 text-base text-gray-600 sm:text-lg md:text-xl">
 			Your central hub for managing tasks, tracking workload, and staying organized.
 		</p>
 	</div>
@@ -89,28 +95,38 @@
 	<div class="mb-16 grid gap-8 md:grid-cols-3">
 		<!-- Upcoming Tasks -->
 		<div class="md:col-span-2">
-			<TaskList 
-				tasks={dashboardTasks} 
-				maxTasks={DASHBOARD_TASK_LIMIT} 
-				preserveOrder={true} 
+			<TaskList
+				tasks={dashboardTasks}
+				maxTasks={DASHBOARD_TASK_LIMIT}
+				preserveOrder={true}
 				showFilters={false}
 				totalTasksOverride={data.tasks.length}
-				openEdit={openTaskEdit} 
+				openEdit={openTaskEdit}
 			/>
 		</div>
 
 		<!-- My Courses -->
 		<div class="md:col-span-1">
-			<CourseList courses={data.courses} maxCourses={5} showStartDate={false} openEdit={openCourseEdit} on:delete={() => invalidateAll()} />
+			<CourseList
+				courses={data.courses}
+				maxCourses={5}
+				showStartDate={false}
+				openEdit={openCourseEdit}
+				on:delete={() => invalidateAll()}
+			/>
 		</div>
 	</div>
 
 	<!-- Stats Section -->
 	<div class="rounded-2xl border border-gray-100 bg-white p-4 shadow-lg sm:p-6 md:p-8">
-		<h2 class="mb-6 text-center text-xl font-bold text-gray-900 sm:text-2xl md:text-3xl md:mb-8">Your Progress in the semester</h2>
-		<div class="grid gap-4 grid-cols-3 md:gap-6">
+		<h2 class="mb-6 text-center text-xl font-bold text-gray-900 sm:text-2xl md:mb-8 md:text-3xl">
+			Your Progress in the semester
+		</h2>
+		<div class="grid grid-cols-3 gap-4 md:gap-6">
 			<div class="text-center">
-				<div class="mb-2 text-4xl font-bold text-indigo-600">{data.tasks.filter(task => task.status !== 'completed').length}</div>
+				<div class="mb-2 text-4xl font-bold text-indigo-600">
+					{data.tasks.filter((task) => task.status !== 'completed').length}
+				</div>
 				<div class="text-gray-600">Active Tasks</div>
 			</div>
 			<div class="text-center">
@@ -119,7 +135,13 @@
 			</div>
 			<div class="text-center">
 				<div class="mb-2 text-4xl font-bold text-pink-600">
-					{data.tasks.length > 0 ? Math.round((data.tasks.filter(task => task.status === 'completed').length / data.tasks.length) * 100) : 0}%
+					{data.tasks.length > 0
+						? Math.round(
+								(data.tasks.filter((task) => task.status === 'completed').length /
+									data.tasks.length) *
+									100
+							)
+						: 0}%
 				</div>
 				<div class="text-gray-600">Completion Rate</div>
 			</div>

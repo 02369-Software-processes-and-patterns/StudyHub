@@ -50,10 +50,16 @@
 {#if members.length > 0}
 	<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 		{#each members as member, index (member.id)}
-			<div class="group relative overflow-hidden rounded-xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-4 transition-all hover:shadow-md hover:border-purple-200">
+			<div
+				class="group relative overflow-hidden rounded-xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-4 transition-all hover:border-purple-200 hover:shadow-md"
+			>
 				<!-- Role Badge -->
 				<div class="absolute top-3 right-3">
-					<span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold {getRoleBadgeClass(member.role)}">
+					<span
+						class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold {getRoleBadgeClass(
+							member.role
+						)}"
+					>
 						{member.role}
 					</span>
 				</div>
@@ -62,19 +68,33 @@
 				<div class="flex items-start gap-3">
 					<!-- Avatar -->
 					<div class="flex-shrink-0">
-						<div class="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br {getAvatarGradient(index)} text-white font-bold text-lg shadow-md ring-2 ring-white">
+						<div
+							class="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br {getAvatarGradient(
+								index
+							)} text-lg font-bold text-white shadow-md ring-2 ring-white"
+						>
 							{getInitials(member.name)}
 						</div>
 					</div>
 
 					<!-- Member Details -->
 					<div class="min-w-0 flex-1 pt-1">
-						<h3 class="font-semibold text-gray-900 truncate mb-1">
+						<h3 class="mb-1 truncate font-semibold text-gray-900">
 							{member.name}
 						</h3>
-						<p class="text-sm text-gray-500 truncate flex items-center gap-1">
-							<svg class="h-3.5 w-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+						<p class="flex items-center gap-1 truncate text-sm text-gray-500">
+							<svg
+								class="h-3.5 w-3.5 flex-shrink-0"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+								/>
 							</svg>
 							<span class="truncate">{member.email}</span>
 						</p>
@@ -86,11 +106,16 @@
 					<!-- TODO: Connect Profile button to view member profile details -->
 					<button
 						type="button"
-						class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+						class="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-100"
 						title="View profile"
 					>
 						<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+							/>
 						</svg>
 						Profile
 					</button>
@@ -98,11 +123,16 @@
 						<!-- TODO: Connect Remove button to delete member from project and handle API call -->
 						<button
 							type="button"
-							class="inline-flex items-center justify-center rounded-lg bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
+							class="inline-flex items-center justify-center rounded-lg bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-red-50 hover:text-red-600"
 							title="Remove member"
 						>
 							<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M6 18L18 6M6 6l12 12"
+								/>
 							</svg>
 						</button>
 					{/if}
@@ -112,13 +142,18 @@
 	</div>
 {:else}
 	<!-- Empty State -->
-	<div class="text-center py-12">
+	<div class="py-12 text-center">
 		<div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
 			<svg class="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+				/>
 			</svg>
 		</div>
-		<h3 class="text-lg font-semibold text-gray-900 mb-2">No team members yet</h3>
-		<p class="text-gray-500 mb-4">Start building your team by inviting members to this project</p>
+		<h3 class="mb-2 text-lg font-semibold text-gray-900">No team members yet</h3>
+		<p class="mb-4 text-gray-500">Start building your team by inviting members to this project</p>
 	</div>
 {/if}

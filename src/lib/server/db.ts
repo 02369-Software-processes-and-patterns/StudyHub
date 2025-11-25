@@ -165,11 +165,7 @@ export async function deleteTask(
 	taskId: string,
 	userId: string
 ): Promise<{ error: Error | null }> {
-	const { error } = await supabase
-		.from('tasks')
-		.delete()
-		.eq('id', taskId)
-		.eq('user_id', userId);
+	const { error } = await supabase.from('tasks').delete().eq('id', taskId).eq('user_id', userId);
 
 	return { error };
 }
@@ -236,11 +232,7 @@ export async function createCourse(
 		lecture_weekdays: string;
 	}
 ): Promise<{ data: Course | null; error: Error | null }> {
-	const { data, error } = await supabase
-		.from('courses')
-		.insert(courseData)
-		.select()
-		.single();
+	const { data, error } = await supabase.from('courses').insert(courseData).select().single();
 
 	return { data: data as Course | null, error };
 }
@@ -296,7 +288,9 @@ export async function updateCourse(
  */
 export async function getAuthenticatedUser(
 	supabase: TypedSupabaseClient
-): Promise<{ userId: string; error: null } | { userId: null; error: { status: number; message: string } }> {
+): Promise<
+	{ userId: string; error: null } | { userId: null; error: { status: number; message: string } }
+> {
 	const {
 		data: { user },
 		error
@@ -455,7 +449,8 @@ export async function getProjectsWithRole(
 ): Promise<{ data: ProjectWithRole[] | null; error: Error | null }> {
 	const { data: projectMembers, error } = await supabase
 		.from('project_members')
-		.select(`
+		.select(
+			`
 			project_id,
 			role,
 			projects (
@@ -466,14 +461,15 @@ export async function getProjectsWithRole(
 				created_at,
 				course:courses(id, name)
 			)
-		`)
+		`
+		)
 		.eq('user_id', userId);
 
 	if (error) {
 		return { data: null, error };
 	}
 
-	const projects = (projectMembers ?? []).map((member: any) => ({
+	const projects = (projectMembers ?? []).map((member) => ({
 		...member.projects,
 		role: member.role
 	})) as ProjectWithRole[];
@@ -496,6 +492,7 @@ export async function createProject(
 ): Promise<{ data: Project | null; error: Error | null }> {
 	// Use RPC function to create project and add owner atomically
 	// This bypasses RLS issues and ensures both operations succeed together
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC functions aren't typed in database.types.ts
 	const { data, error } = await (supabase as any).rpc('create_project_with_owner', {
 		p_name: projectData.name,
 		p_description: projectData.description,
@@ -519,10 +516,12 @@ export async function getProject(
 ): Promise<{ data: Project | null; error: Error | null }> {
 	const { data, error } = await supabase
 		.from('projects')
-		.select(`
+		.select(
+			`
 			*,
 			course:courses(name)
-		`)
+		`
+		)
 		.eq('id', projectId)
 		.single();
 
@@ -544,7 +543,8 @@ export async function getProjectMemberRole(
 		.eq('user_id', userId)
 		.single();
 
-	if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+	if (error && error.code !== 'PGRST116') {
+		// PGRST116 = no rows returned
 		return { role: null, error };
 	}
 
@@ -569,22 +569,25 @@ export async function getProjectMembers(
 		return { data: [], error: membersError };
 	}
 
-	const userIds = members.map(m => m.user_id);
+	const userIds = members.map((m) => m.user_id);
 
 	// Get user details using RPC function
 	// Using type assertion since RPC functions may not be typed in database.types.ts
-	const { data: userDetails, error: userError } = await (supabase as any)
-		.rpc('get_user_details_by_ids', { user_ids: userIds }) as { 
-			data: Array<{ id: string; email: string; name?: string }> | null; 
-			error: Error | null 
-		};
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC functions aren't typed
+	const { data: userDetails, error: userError } = (await (supabase as any).rpc(
+		'get_user_details_by_ids',
+		{ user_ids: userIds }
+	)) as {
+		data: Array<{ id: string; email: string; name?: string }> | null;
+		error: Error | null;
+	};
 
 	if (userError) {
 		return { data: null, error: userError };
 	}
 
-	const membersWithDetails = members.map(member => {
-		const userDetail = userDetails?.find(u => u.id === member.user_id);
+	const membersWithDetails = members.map((member) => {
+		const userDetail = userDetails?.find((u) => u.id === member.user_id);
 		return {
 			id: member.user_id,
 			role: member.role as 'Owner' | 'Admin' | 'Member',
@@ -608,15 +611,19 @@ export async function addProjectMembers(
 		return { added: 0, error: null };
 	}
 
-	const emails = members.map(m => m.email);
+	const emails = members.map((m) => m.email);
 
 	// Get user IDs from emails
 	// Using type assertion since RPC functions may not be typed in database.types.ts
-	const { data: userData, error: userError } = await (supabase as any).rpc('get_user_ids_by_emails', {
-		email_list: emails
-	}) as { 
-		data: Array<{ id: string; email: string }> | null; 
-		error: Error | null 
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC functions aren't typed
+	const { data: userData, error: userError } = (await (supabase as any).rpc(
+		'get_user_ids_by_emails',
+		{
+			email_list: emails
+		}
+	)) as {
+		data: Array<{ id: string; email: string }> | null;
+		error: Error | null;
 	};
 
 	if (userError) {
@@ -628,8 +635,8 @@ export async function addProjectMembers(
 	}
 
 	// Create member records
-	const memberInserts = userData.map(user => {
-		const invitedMember = members.find(m => m.email === user.email);
+	const memberInserts = userData.map((user) => {
+		const invitedMember = members.find((m) => m.email === user.email);
 		return {
 			project_id: projectId,
 			user_id: user.id,
@@ -637,9 +644,7 @@ export async function addProjectMembers(
 		};
 	});
 
-	const { error: insertError } = await supabase
-		.from('project_members')
-		.insert(memberInserts);
+	const { error: insertError } = await supabase.from('project_members').insert(memberInserts);
 
 	if (insertError) {
 		return { added: 0, error: insertError };
@@ -664,7 +669,9 @@ export function parseLectureWeekdays(value: unknown): number[] {
 	if (typeof value === 'string') {
 		try {
 			const parsed = JSON.parse(value);
-			return Array.isArray(parsed) ? parsed.filter((item): item is number => typeof item === 'number') : [];
+			return Array.isArray(parsed)
+				? parsed.filter((item): item is number => typeof item === 'number')
+				: [];
 		} catch {
 			return [];
 		}
@@ -675,7 +682,10 @@ export function parseLectureWeekdays(value: unknown): number[] {
 /**
  * Convert ECTS points to weekly hours for lectures and assignments
  */
-export function convertEctsToWeeklyHours(ects: number): { lectureHours: number; assignmentHours: number } {
+export function convertEctsToWeeklyHours(ects: number): {
+	lectureHours: number;
+	assignmentHours: number;
+} {
 	const ratio = ects / 5.0;
 	return {
 		lectureHours: ratio * 2,
@@ -780,7 +790,6 @@ export async function regenerateCourseTasks(
 	}
 
 	return { error: null };
-	
 }
 
 /**
@@ -799,4 +808,3 @@ export async function removeProjectMember(
 
 	return { error };
 }
-

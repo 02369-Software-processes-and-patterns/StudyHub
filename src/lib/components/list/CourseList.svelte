@@ -37,10 +37,10 @@
 	function formatDate(date: string | null | undefined): string {
 		if (!date) return '-';
 		const dateObj = new Date(date);
-		return dateObj.toLocaleDateString('en-US', { 
-			day: 'numeric', 
-			month: 'short', 
-			year: 'numeric' 
+		return dateObj.toLocaleDateString('en-US', {
+			day: 'numeric',
+			month: 'short',
+			year: 'numeric'
 		});
 	}
 
@@ -90,29 +90,43 @@
 </script>
 
 {#if sortedCourses.length > 0}
-<ListCard
-	title="My Courses"
-	totalCount={totalCourses}
-	displayCount={sortedCourses.length}
-	{showViewAll}
-	viewAllUrl="/course"
->
+	<ListCard
+		title="My Courses"
+		totalCount={totalCourses}
+		displayCount={sortedCourses.length}
+		{showViewAll}
+		viewAllUrl="/course"
+	>
 		<div class="overflow-x-auto">
 			<table class="min-w-full divide-y divide-gray-200">
 				<thead class="bg-gray-50">
 					<tr>
-						<th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3">Course</th>
-						<th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3">ECTS</th>
+						<th
+							class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3"
+							>Course</th
+						>
+						<th
+							class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3"
+							>ECTS</th
+						>
 						{#if showStartDate}
-							<th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3 hidden md:table-cell">Start</th>
+							<th
+								class="hidden px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:table-cell md:px-6 md:py-3"
+								>Start</th
+							>
 						{/if}
-						<th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3">End Date</th>
-						<th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3 w-10"></th>
+						<th
+							class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3"
+							>End Date</th
+						>
+						<th
+							class="w-10 px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3"
+						></th>
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-gray-200 bg-white">
 					{#each sortedCourses as course (course.id)}
-						<tr 
+						<tr
 							class="transition hover:bg-gray-50 {openEdit ? 'cursor-pointer' : ''}"
 							on:click={(e) => {
 								if (!openEdit) return;
@@ -133,11 +147,13 @@
 								</span>
 							</td>
 							{#if showStartDate}
-								<td class="px-2 py-2 text-xs text-gray-700 sm:px-4 md:px-6 md:py-4 sm:text-sm hidden md:table-cell">
+								<td
+									class="hidden px-2 py-2 text-xs text-gray-700 sm:px-4 sm:text-sm md:table-cell md:px-6 md:py-4"
+								>
 									{formatDate(course.start_date)}
 								</td>
 							{/if}
-							<td class="px-2 py-2 text-xs text-gray-700 sm:px-4 md:px-6 md:py-4 sm:text-sm">
+							<td class="px-2 py-2 text-xs text-gray-700 sm:px-4 sm:text-sm md:px-6 md:py-4">
 								{formatDate(course.end_date)}
 							</td>
 							<td class="px-2 py-2 text-center sm:px-4 md:px-6 md:py-4">
@@ -145,18 +161,38 @@
 									type="button"
 									on:click={() => openDeleteModal(course)}
 									disabled={isDeleting[course.id]}
-									class="inline-flex items-center justify-center w-6 h-6 rounded text-red-600 hover:bg-red-50 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+									class="inline-flex h-6 w-6 items-center justify-center rounded text-red-600 transition hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
 									title="Delete course"
 									aria-label="Delete course"
 								>
 									{#if isDeleting[course.id]}
-										<svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-											<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+										<svg
+											class="h-4 w-4 animate-spin"
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+										>
+											<circle
+												class="opacity-25"
+												cx="12"
+												cy="12"
+												r="10"
+												stroke="currentColor"
+												stroke-width="4"
+											></circle>
+											<path
+												class="opacity-75"
+												fill="currentColor"
+												d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+											></path>
 										</svg>
 									{:else}
-										<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-											<path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+										<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+											<path
+												fill-rule="evenodd"
+												d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+												clip-rule="evenodd"
+											/>
 										</svg>
 									{/if}
 								</button>
@@ -168,13 +204,15 @@
 		</div>
 	</ListCard>
 {:else}
-	<EmptyState
-		title="No courses yet"
-		description="Add your first course to get started"
-	/>
+	<EmptyState title="No courses yet" description="Add your first course to get started" />
 {/if}
 
-<Modal bind:isOpen={deleteModalOpen} title="Delete Course" maxWidth="max-w-sm" on:close={closeDeleteModal}>
+<Modal
+	bind:isOpen={deleteModalOpen}
+	title="Delete Course"
+	maxWidth="max-w-sm"
+	on:close={closeDeleteModal}
+>
 	{#if courseToDelete}
 		{#if deleteError}
 			<div class="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
@@ -184,19 +222,21 @@
 
 		<div class="space-y-4">
 			<p class="text-gray-600">
-				Are you sure you want to delete <span class="font-semibold text-gray-900">"{courseToDelete.name}"</span>?
+				Are you sure you want to delete <span class="font-semibold text-gray-900"
+					>"{courseToDelete.name}"</span
+				>?
 			</p>
 			<p class="text-sm text-gray-500">
 				This action will also delete all tasks associated with this course. This cannot be undone.
 			</p>
 		</div>
 
-		<div class="flex gap-3 pt-6 border-t border-gray-200">
+		<div class="flex gap-3 border-t border-gray-200 pt-6">
 			<button
 				type="button"
 				on:click={closeDeleteModal}
 				disabled={Object.values(isDeleting).some(Boolean)}
-				class="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
+				class="flex-1 rounded-md border border-gray-300 px-4 py-2 font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
 			>
 				Cancel
 			</button>
@@ -204,7 +244,7 @@
 				type="button"
 				on:click={confirmDelete}
 				disabled={Object.values(isDeleting).some(Boolean)}
-				class="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
+				class="flex-1 rounded-md bg-red-600 px-4 py-2 font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
 			>
 				{Object.values(isDeleting).some(Boolean) ? 'Deleting...' : 'Delete Course'}
 			</button>

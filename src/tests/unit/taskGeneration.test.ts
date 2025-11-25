@@ -33,7 +33,7 @@ function generateCourseTasks(
 	assignmentHours: number
 ): TaskToInsert[] {
 	const tasksToInsert: TaskToInsert[] = [];
-	let currentDate = new Date(startDate);
+	const currentDate = new Date(startDate);
 	let weekCounter = 1;
 
 	while (currentDate <= endDate) {
@@ -130,7 +130,7 @@ describe('Task Generation Logic', () => {
 		let endDate: Date;
 		let lectureHours: number;
 		let assignmentHours: number;
- 
+
 		beforeEach(() => {
 			userId = 'user-123';
 			courseId = 'course-456';
@@ -142,7 +142,15 @@ describe('Task Generation Logic', () => {
 			startDate = new Date('2024-12-01');
 			endDate = new Date('2024-11-01');
 
-			const tasks = generateCourseTasks(userId, courseId, startDate, endDate, [1], lectureHours, assignmentHours);
+			const tasks = generateCourseTasks(
+				userId,
+				courseId,
+				startDate,
+				endDate,
+				[1],
+				lectureHours,
+				assignmentHours
+			);
 
 			expect(tasks).toHaveLength(0);
 		});
@@ -151,7 +159,15 @@ describe('Task Generation Logic', () => {
 			startDate = new Date('2024-11-04'); // Monday
 			endDate = new Date('2024-11-04'); // Same Monday
 
-			const tasks = generateCourseTasks(userId, courseId, startDate, endDate, [1], lectureHours, assignmentHours);
+			const tasks = generateCourseTasks(
+				userId,
+				courseId,
+				startDate,
+				endDate,
+				[1],
+				lectureHours,
+				assignmentHours
+			);
 
 			expect(tasks).toHaveLength(2); // 1 lecture + 1 assignment
 			expect(tasks[0].name).toBe('Lecture 1');
@@ -162,7 +178,15 @@ describe('Task Generation Logic', () => {
 			startDate = new Date('2024-11-04'); // Monday
 			endDate = new Date('2024-11-18'); // 2 weeks later (3 Mondays total)
 
-			const tasks = generateCourseTasks(userId, courseId, startDate, endDate, [1], lectureHours, assignmentHours);
+			const tasks = generateCourseTasks(
+				userId,
+				courseId,
+				startDate,
+				endDate,
+				[1],
+				lectureHours,
+				assignmentHours
+			);
 
 			// Should have 3 Mondays in this range (04, 11, 18)
 			expect(tasks).toHaveLength(6); // 3 lectures + 3 assignments
@@ -176,7 +200,15 @@ describe('Task Generation Logic', () => {
 			endDate = new Date('2024-11-08'); // Friday
 
 			// Monday (1) and Wednesday (3)
-			const tasks = generateCourseTasks(userId, courseId, startDate, endDate, [1, 3], lectureHours, assignmentHours);
+			const tasks = generateCourseTasks(
+				userId,
+				courseId,
+				startDate,
+				endDate,
+				[1, 3],
+				lectureHours,
+				assignmentHours
+			);
 
 			expect(tasks).toHaveLength(4); // 2 lectures + 2 assignments (Mon + Wed)
 			expect(tasks[0].name).toBe('Lecture 1');
@@ -197,7 +229,15 @@ describe('Task Generation Logic', () => {
 			startDate = new Date('2024-11-04'); // Monday
 			endDate = new Date('2024-11-04');
 
-			const tasks = generateCourseTasks(userId, courseId, startDate, endDate, [1], lectureHours, assignmentHours);
+			const tasks = generateCourseTasks(
+				userId,
+				courseId,
+				startDate,
+				endDate,
+				[1],
+				lectureHours,
+				assignmentHours
+			);
 
 			const deadlineDate = new Date(tasks[0].deadline);
 			expect(deadlineDate.getHours()).toBe(23);
@@ -209,7 +249,15 @@ describe('Task Generation Logic', () => {
 			startDate = new Date('2024-11-04');
 			endDate = new Date('2024-11-11');
 
-			const tasks = generateCourseTasks(userId, courseId, startDate, endDate, [1], lectureHours, assignmentHours);
+			const tasks = generateCourseTasks(
+				userId,
+				courseId,
+				startDate,
+				endDate,
+				[1],
+				lectureHours,
+				assignmentHours
+			);
 
 			tasks.forEach((task) => {
 				expect(task.user_id).toBe(userId);
@@ -221,7 +269,15 @@ describe('Task Generation Logic', () => {
 			startDate = new Date('2024-11-04');
 			endDate = new Date('2024-11-18');
 
-			const tasks = generateCourseTasks(userId, courseId, startDate, endDate, [1], lectureHours, assignmentHours);
+			const tasks = generateCourseTasks(
+				userId,
+				courseId,
+				startDate,
+				endDate,
+				[1],
+				lectureHours,
+				assignmentHours
+			);
 
 			expect(tasks[0].name).toBe('Lecture 1');
 			expect(tasks[1].name).toBe('Assignment 1');
@@ -234,7 +290,15 @@ describe('Task Generation Logic', () => {
 			endDate = new Date('2024-11-08'); // Friday
 
 			// Only Monday (1), skip Tuesday-Friday
-			const tasks = generateCourseTasks(userId, courseId, startDate, endDate, [1], lectureHours, assignmentHours);
+			const tasks = generateCourseTasks(
+				userId,
+				courseId,
+				startDate,
+				endDate,
+				[1],
+				lectureHours,
+				assignmentHours
+			);
 
 			expect(tasks).toHaveLength(2); // Only 1 lecture + 1 assignment
 		});
@@ -243,7 +307,15 @@ describe('Task Generation Logic', () => {
 			startDate = new Date('2024-11-09'); // Saturday
 			endDate = new Date('2024-11-10'); // Sunday
 
-			const tasks = generateCourseTasks(userId, courseId, startDate, endDate, [1], lectureHours, assignmentHours); // Monday only
+			const tasks = generateCourseTasks(
+				userId,
+				courseId,
+				startDate,
+				endDate,
+				[1],
+				lectureHours,
+				assignmentHours
+			); // Monday only
 
 			expect(tasks).toHaveLength(0);
 		});
@@ -253,7 +325,15 @@ describe('Task Generation Logic', () => {
 			endDate = new Date('2024-12-01'); // 4 weeks
 
 			// Monday only
-			const tasks = generateCourseTasks(userId, courseId, startDate, endDate, [1], lectureHours, assignmentHours);
+			const tasks = generateCourseTasks(
+				userId,
+				courseId,
+				startDate,
+				endDate,
+				[1],
+				lectureHours,
+				assignmentHours
+			);
 
 			// Should have ~4 Mondays + some extra days
 			expect(tasks.length).toBeGreaterThanOrEqual(8); // At least 4 lectures + 4 assignments
@@ -263,7 +343,15 @@ describe('Task Generation Logic', () => {
 			startDate = new Date('2024-11-04');
 			endDate = new Date('2024-11-11');
 
-			const tasks = generateCourseTasks(userId, courseId, startDate, endDate, [1], lectureHours, assignmentHours);
+			const tasks = generateCourseTasks(
+				userId,
+				courseId,
+				startDate,
+				endDate,
+				[1],
+				lectureHours,
+				assignmentHours
+			);
 
 			tasks.forEach((task) => {
 				expect(task.status).toBe('pending');
@@ -274,7 +362,15 @@ describe('Task Generation Logic', () => {
 			startDate = new Date('2024-11-05'); // Tuesday
 			endDate = new Date('2024-11-05'); // Tuesday
 
-			const tasks = generateCourseTasks(userId, courseId, startDate, endDate, [1], lectureHours, assignmentHours); // Monday only
+			const tasks = generateCourseTasks(
+				userId,
+				courseId,
+				startDate,
+				endDate,
+				[1],
+				lectureHours,
+				assignmentHours
+			); // Monday only
 
 			expect(tasks).toHaveLength(0);
 		});
@@ -283,7 +379,15 @@ describe('Task Generation Logic', () => {
 			startDate = new Date('2024-11-06'); // Wednesday
 			endDate = new Date('2024-11-06'); // Wednesday
 
-			const tasks = generateCourseTasks(userId, courseId, startDate, endDate, [1, 3], lectureHours, assignmentHours);
+			const tasks = generateCourseTasks(
+				userId,
+				courseId,
+				startDate,
+				endDate,
+				[1, 3],
+				lectureHours,
+				assignmentHours
+			);
 
 			expect(tasks).toHaveLength(2); // Wednesday is in lecture weekdays
 		});
@@ -292,7 +396,15 @@ describe('Task Generation Logic', () => {
 			startDate = new Date('2024-11-04');
 			endDate = new Date('2024-11-04');
 
-			const tasks = generateCourseTasks(userId, courseId, startDate, endDate, [1], lectureHours, assignmentHours);
+			const tasks = generateCourseTasks(
+				userId,
+				courseId,
+				startDate,
+				endDate,
+				[1],
+				lectureHours,
+				assignmentHours
+			);
 
 			tasks.forEach((task) => {
 				expect(() => new Date(task.deadline)).not.toThrow();
@@ -304,7 +416,15 @@ describe('Task Generation Logic', () => {
 			startDate = new Date('2024-11-04');
 			endDate = new Date('2024-11-25');
 
-			const tasks = generateCourseTasks(userId, courseId, startDate, endDate, [1], lectureHours, assignmentHours);
+			const tasks = generateCourseTasks(
+				userId,
+				courseId,
+				startDate,
+				endDate,
+				[1],
+				lectureHours,
+				assignmentHours
+			);
 
 			// Extract week numbers from task names
 			const weekNumbers = new Set<number>();
@@ -323,7 +443,15 @@ describe('Task Generation Logic', () => {
 			startDate = new Date('2024-11-04');
 			endDate = new Date('2024-11-11');
 
-			const tasks = generateCourseTasks(userId, courseId, startDate, endDate, [], lectureHours, assignmentHours);
+			const tasks = generateCourseTasks(
+				userId,
+				courseId,
+				startDate,
+				endDate,
+				[],
+				lectureHours,
+				assignmentHours
+			);
 
 			expect(tasks).toHaveLength(0);
 		});
@@ -333,7 +461,15 @@ describe('Task Generation Logic', () => {
 			endDate = new Date('2024-11-10'); // Sunday
 
 			// All weekdays (0-6)
-			const tasks = generateCourseTasks(userId, courseId, startDate, endDate, [0, 1, 2, 3, 4, 5, 6], lectureHours, assignmentHours);
+			const tasks = generateCourseTasks(
+				userId,
+				courseId,
+				startDate,
+				endDate,
+				[0, 1, 2, 3, 4, 5, 6],
+				lectureHours,
+				assignmentHours
+			);
 
 			// Should have tasks for all 7 days
 			expect(tasks).toHaveLength(14); // 7 lectures + 7 assignments
@@ -343,7 +479,15 @@ describe('Task Generation Logic', () => {
 			startDate = new Date('2024-02-29'); // Leap year date
 			endDate = new Date('2024-03-06');
 
-			const tasks = generateCourseTasks(userId, courseId, startDate, endDate, [1, 2, 3, 4], lectureHours, assignmentHours);
+			const tasks = generateCourseTasks(
+				userId,
+				courseId,
+				startDate,
+				endDate,
+				[1, 2, 3, 4],
+				lectureHours,
+				assignmentHours
+			);
 
 			// Should not throw and generate tasks
 			expect(tasks.length).toBeGreaterThan(0);
@@ -358,7 +502,15 @@ describe('Task Generation Logic', () => {
 			const startDate = new Date('2024-11-04');
 			const endDate = new Date('2024-11-04');
 
-			const tasks = generateCourseTasks('user-123', 'course-456', startDate, endDate, [1], lectureHours, assignmentHours);
+			const tasks = generateCourseTasks(
+				'user-123',
+				'course-456',
+				startDate,
+				endDate,
+				[1],
+				lectureHours,
+				assignmentHours
+			);
 
 			expect(tasks[0].effort_hours).toBe(4);
 			expect(tasks[1].effort_hours).toBe(4);
@@ -374,7 +526,15 @@ describe('Task Generation Logic', () => {
 			const startDate = new Date('2024-11-04');
 			const endDate = new Date('2024-11-04');
 
-			const tasks = generateCourseTasks('user-123', 'course-456', startDate, endDate, [1], lectureHours, assignmentHours);
+			const tasks = generateCourseTasks(
+				'user-123',
+				'course-456',
+				startDate,
+				endDate,
+				[1],
+				lectureHours,
+				assignmentHours
+			);
 
 			expect(tasks[0].effort_hours).toBe(3);
 		});

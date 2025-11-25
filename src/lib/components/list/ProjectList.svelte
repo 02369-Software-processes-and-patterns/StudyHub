@@ -17,7 +17,7 @@
 	export let projects: Project[] = [];
 	export let showViewAll: boolean = true;
 	// Mulighed for at begrænse antal projekter (f.eks. på dashboard)
-	export let maxProjects: number | null = null; 
+	export let maxProjects: number | null = null;
 
 	type StatusFilter = ProjectStatus | 'all';
 	type CourseFilter = 'all' | string;
@@ -36,11 +36,7 @@
 
 	// Build course options from projects
 	$: courseOptions = Array.from(
-		new Map(
-			projects
-				.filter((p) => p.course)
-				.map((p) => [p.course!.id, p.course!])
-		).values()
+		new Map(projects.filter((p) => p.course).map((p) => [p.course!.id, p.course!])).values()
 	) as CourseRef[];
 
 	// Clear all filters
@@ -87,7 +83,7 @@
 	$: filteredProjects = projects.filter((project) => {
 		const matchesName = nameQuery
 			? project.name.toLowerCase().includes(nameQuery.trim().toLowerCase()) ||
-			  project.description.toLowerCase().includes(nameQuery.trim().toLowerCase())
+				project.description.toLowerCase().includes(nameQuery.trim().toLowerCase())
 			: true;
 		const matchesStatus = statusFilter === 'all' ? true : project.status === statusFilter;
 		const matchesCourse =
@@ -140,7 +136,7 @@
 				aria-label="Filter by status"
 			>
 				<option value="all">Status</option>
-				{#each statusOptions as opt}
+				{#each statusOptions as opt (opt.value)}
 					<option value={opt.value}>{opt.label}</option>
 				{/each}
 			</select>
@@ -151,7 +147,7 @@
 				aria-label="Filter by course"
 			>
 				<option value="all">Courses</option>
-				{#each courseOptions as c}
+				{#each courseOptions as c (c.id)}
 					<option value={c.id}>{c.name}</option>
 				{/each}
 			</select>
@@ -196,17 +192,17 @@
 			<tbody class="divide-y divide-gray-200 bg-white">
 				{#if sortedProjects.length > 0}
 					{#each sortedProjects as project (project.id)}
-						<tr 
-							class="transition hover:bg-gray-50 cursor-pointer {getRowClass(project)}" 
-							on:click={() => handleRowClick(project.id)} 
-							tabindex="0" 
+						<tr
+							class="cursor-pointer transition hover:bg-gray-50 {getRowClass(project)}"
+							on:click={() => handleRowClick(project.id)}
+							tabindex="0"
 							aria-label={'View project ' + project.name}
 						>
 							<td class="px-2 py-2 text-xs sm:px-4 md:px-6 md:py-4">
 								<div class="font-semibold text-gray-900 sm:text-sm">
 									{project.name}
 								</div>
-								<div class="mt-1 text-xs text-gray-600 line-clamp-2">
+								<div class="mt-1 line-clamp-2 text-xs text-gray-600">
 									{project.description}
 								</div>
 								<div class="mt-0.5 text-xs text-gray-500 sm:hidden">
@@ -218,27 +214,29 @@
 							</td>
 
 							<td
-								class="hidden px-2 py-2 text-xs text-gray-700 sm:table-cell sm:px-4 md:px-6 md:py-4 sm:text-sm"
+								class="hidden px-2 py-2 text-xs text-gray-700 sm:table-cell sm:px-4 sm:text-sm md:px-6 md:py-4"
 							>
 								{project.course?.name ?? '-'}
 							</td>
 
 							<td class="px-2 py-2 text-xs sm:px-4 md:px-6 md:py-4">
 								<span
-									class="inline-flex rounded-full px-2 py-1 text-xs font-semibold leading-5 {getStatusClass(project)}"
+									class="inline-flex rounded-full px-2 py-1 text-xs leading-5 font-semibold {getStatusClass(
+										project
+									)}"
 								>
 									{statusOptions.find((s) => s.value === project.status)?.label ?? project.status}
 								</span>
 							</td>
 
 							<td
-								class="hidden px-2 py-2 text-xs text-gray-700 sm:px-4 md:px-6 md:py-4 sm:text-sm lg:table-cell capitalize"
+								class="hidden px-2 py-2 text-xs text-gray-700 capitalize sm:px-4 sm:text-sm md:px-6 md:py-4 lg:table-cell"
 							>
 								{project.role ?? '-'}
 							</td>
 
 							<td
-								class="hidden px-2 py-2 text-xs text-gray-500 sm:px-4 md:px-6 md:py-4 sm:text-sm lg:table-cell"
+								class="hidden px-2 py-2 text-xs text-gray-500 sm:px-4 sm:text-sm md:px-6 md:py-4 lg:table-cell"
 							>
 								{fmtDate(project.created_at)}
 							</td>
