@@ -6,9 +6,10 @@
 	interface Props {
 		session: Session | null;
 		user: User | null;
+		pendingInvitationsCount?: number;
 	}
 	
-	let { session, user }: Props = $props();
+	let { session, user, pendingInvitationsCount = 0 }: Props = $props();
 	
 	// Navigation buttons data
 	const navButtons = [
@@ -139,20 +140,53 @@
 			<!-- Right Side - User Profile (always visible) -->
 			<div class="flex items-center gap-3 ml-auto md:ml-0 profile-menu-container relative">
 				<span class="font-medium text-gray-700">Hey {userName}!</span>
-				<button 
-					onclick={toggleProfileMenu}
-					class="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200 hover:border-indigo-600 transition-colors cursor-pointer"
-				>
-					<img 
-						src="https://ui-avatars.com/api/?name={userName}&background=4f46e5&color=fff&size=40" 
-						alt="{userName}'s profile"
-						class="w-full h-full object-cover"
-					/>
-				</button>
+				
+				<!-- Profile Picture with Notification Badge -->
+				<div class="relative">
+					<button 
+						onclick={toggleProfileMenu}
+						class="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200 hover:border-indigo-600 transition-colors cursor-pointer"
+					>
+						<img 
+							src="https://ui-avatars.com/api/?name={userName}&background=4f46e5&color=fff&size=40" 
+							alt="{userName}'s profile"
+							class="w-full h-full object-cover"
+						/>
+					</button>
+					
+					<!-- Notification Badge -->
+					{#if pendingInvitationsCount > 0}
+						<a
+							href="/invitations"
+							class="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-md ring-2 ring-white"
+							title="{pendingInvitationsCount} pending {pendingInvitationsCount === 1 ? 'invitation' : 'invitations'}"
+						>
+							{pendingInvitationsCount > 9 ? '9+' : pendingInvitationsCount}
+						</a>
+					{/if}
+				</div>
 				
 				<!-- Profile Dropdown Menu -->
 				{#if profileMenuOpen}
 					<div class="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+						<a
+							href="/invitations"
+							class="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-2"
+							onclick={() => profileMenuOpen = false}
+						>
+							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+							</svg>
+							<div class="flex items-center justify-between flex-1">
+								<span>Invitations</span>
+								{#if pendingInvitationsCount > 0}
+									<span class="ml-2 inline-flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-white text-xs font-bold">
+										{pendingInvitationsCount > 9 ? '9+' : pendingInvitationsCount}
+									</span>
+								{/if}
+							</div>
+						</a>
+						<hr class="my-1 border-gray-200" />
 						<button
 							onclick={signOut}
 							class="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-2"
