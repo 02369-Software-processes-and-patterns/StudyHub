@@ -173,9 +173,9 @@ export const actions: Actions = {
 		}
 
 		// Check if scheduling-related fields changed (requires task regeneration)
-		const schedulingFieldsChanged = 
-			updates.start_date !== undefined || 
-			updates.end_date !== undefined || 
+		const schedulingFieldsChanged =
+			updates.start_date !== undefined ||
+			updates.end_date !== undefined ||
 			updates.lecture_weekdays !== undefined ||
 			updates.ects_points !== undefined;
 

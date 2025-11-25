@@ -1,14 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 /**
  * Integration tests for manual task creation workflow
  * Tests the complete flow from form submission to database insertion
  */
-
-interface MockSupabaseResponse {
-	data: unknown;
-	error: Error | null;
-}
 
 interface TaskData {
 	user_id: string;
@@ -41,7 +37,7 @@ function createMockSupabaseClient() {
 				});
 			})
 		},
-		from: vi.fn().mockImplementation((table: string) => ({
+		from: vi.fn().mockImplementation((_table: string) => ({
 			select: vi.fn().mockReturnThis(),
 			insert: vi.fn().mockImplementation((data: TaskData) => {
 				if (shouldFailInsert) {
@@ -60,11 +56,19 @@ function createMockSupabaseClient() {
 			order: vi.fn().mockReturnThis()
 		})),
 		// Test utilities
-		_setAuthFailure: (fail: boolean) => { shouldFailAuth = fail; },
-		_setInsertFailure: (fail: boolean) => { shouldFailInsert = fail; },
-		_setMockUser: (user: any) => { mockUser = user; },
+		_setAuthFailure: (fail: boolean) => {
+			shouldFailAuth = fail;
+		},
+		_setInsertFailure: (fail: boolean) => {
+			shouldFailInsert = fail;
+		},
+		_setMockUser: (user: { id: string }) => {
+			mockUser = user;
+		},
 		_getTasks: () => [...mockTasks],
-		_clearTasks: () => { mockTasks.length = 0; }
+		_clearTasks: () => {
+			mockTasks.length = 0;
+		}
 	};
 }
 
@@ -78,7 +82,7 @@ async function createTaskAction(
 			data: { user },
 			error: userErr
 		} = await supabase.auth.getUser();
-		
+
 		if (userErr) return { success: false, error: userErr.message };
 		if (!user) return { success: false, error: 'Not authenticated' };
 
@@ -116,7 +120,7 @@ async function createTaskAction(
 		}
 
 		return { success: true };
-	} catch (err) {
+	} catch {
 		return { success: false, error: 'Internal error while creating task' };
 	}
 }
@@ -140,7 +144,7 @@ describe('Manual Task Creation - Integration Tests', () => {
 			const result = await createTaskAction(formData, mockSupabase);
 
 			expect(result.success).toBe(true);
-			
+
 			const tasks = mockSupabase._getTasks();
 			expect(tasks).toHaveLength(1);
 			expect(tasks[0]).toMatchObject({
@@ -161,7 +165,7 @@ describe('Manual Task Creation - Integration Tests', () => {
 			const result = await createTaskAction(formData, mockSupabase);
 
 			expect(result.success).toBe(true);
-			
+
 			const tasks = mockSupabase._getTasks();
 			expect(tasks).toHaveLength(1);
 			expect(tasks[0]).toMatchObject({
@@ -182,7 +186,7 @@ describe('Manual Task Creation - Integration Tests', () => {
 			const result = await createTaskAction(formData, mockSupabase);
 
 			expect(result.success).toBe(true);
-			
+
 			const tasks = mockSupabase._getTasks();
 			expect(tasks[0].course_id).toBe(null);
 		});
@@ -196,7 +200,7 @@ describe('Manual Task Creation - Integration Tests', () => {
 			const result = await createTaskAction(formData, mockSupabase);
 
 			expect(result.success).toBe(true);
-			
+
 			const tasks = mockSupabase._getTasks();
 			expect(tasks[0].deadline).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
 		});
@@ -276,7 +280,7 @@ describe('Manual Task Creation - Integration Tests', () => {
 			const result = await createTaskAction(formData, mockSupabase);
 
 			expect(result.success).toBe(true);
-			
+
 			const tasks = mockSupabase._getTasks();
 			expect(tasks[0].user_id).toBe('custom-user-456');
 		});
@@ -308,7 +312,7 @@ describe('Manual Task Creation - Integration Tests', () => {
 			const result = await createTaskAction(formData, mockSupabase);
 
 			expect(result.success).toBe(true);
-			
+
 			const tasks = mockSupabase._getTasks();
 			const task = tasks[0];
 
@@ -339,12 +343,12 @@ describe('Manual Task Creation - Integration Tests', () => {
 
 			const createdTasks = mockSupabase._getTasks();
 			expect(createdTasks).toHaveLength(3);
-			
+
 			// Verify each task has unique data but same user
-			const userIds = new Set(createdTasks.map(t => t.user_id));
+			const userIds = new Set(createdTasks.map((t) => t.user_id));
 			expect(userIds.size).toBe(1);
-			
-			const names = createdTasks.map(t => t.name);
+
+			const names = createdTasks.map((t) => t.name);
 			expect(names).toEqual(['Task 1', 'Task 2', 'Task 3']);
 		});
 	});
@@ -359,7 +363,7 @@ describe('Manual Task Creation - Integration Tests', () => {
 			const result = await createTaskAction(formData, mockSupabase);
 
 			expect(result.success).toBe(true);
-			
+
 			const tasks = mockSupabase._getTasks();
 			expect(tasks[0].name).toBe(longName);
 		});
@@ -372,7 +376,7 @@ describe('Manual Task Creation - Integration Tests', () => {
 			const result = await createTaskAction(formData, mockSupabase);
 
 			expect(result.success).toBe(true);
-			
+
 			const tasks = mockSupabase._getTasks();
 			expect(tasks[0].effort_hours).toBe(1000);
 		});
@@ -386,7 +390,7 @@ describe('Manual Task Creation - Integration Tests', () => {
 			const result = await createTaskAction(formData, mockSupabase);
 
 			expect(result.success).toBe(true);
-			
+
 			const tasks = mockSupabase._getTasks();
 			expect(tasks[0].name).toBe('Task with émojis 🎯 and spéciål chars');
 			expect(tasks[0].course_id).toBe('course-with-dashes-123');

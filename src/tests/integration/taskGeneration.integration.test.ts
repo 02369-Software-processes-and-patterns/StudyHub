@@ -1,21 +1,18 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { describe, it, expect, beforeEach } from 'vitest';
 
 /**
  * Mock Supabase client for integration tests
+ * Note: This is a simplified mock for testing the task generation logic,
+ * not a full Supabase client mock.
  */
 interface MockSupabaseInstance {
-	from: (table: string) => MockQuery;
+	from: (table: string) => MockQueryBuilder;
 }
 
-interface MockQuery {
-	select: (fields?: string) => MockQuery;
-	insert: (data: unknown) => MockQuery;
-	update: (data: unknown) => MockQuery;
-	eq: (column: string, value: unknown) => MockQuery;
-	order: (column: string, options?: unknown) => MockQuery;
-	single: () => Promise<{ data: unknown; error: null } | { data: null; error: Error }>;
-	then: (callback: (result: any) => void) => Promise<any>;
-}
+// Using 'any' for mock internals to avoid complex type gymnastics
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type MockQueryBuilder = any;
 
 function createMockSupabase(): MockSupabaseInstance {
 	const tables: Record<string, unknown[]> = {
@@ -23,66 +20,56 @@ function createMockSupabase(): MockSupabaseInstance {
 		courses: []
 	};
 
-	const mockQueries: Record<string, unknown[]> = {
+	const mockQueries: { lastInsertedTasks: unknown[]; lastInsertedCourse: unknown } = {
 		lastInsertedTasks: [],
-		lastInsertedCourse: {}
+		lastInsertedCourse: null
 	};
 
-	const createQuery = (operation: string, tableName: string): MockQuery => {
-		let data: unknown = null;
-		let whereConditions: Array<[string, unknown]> = [];
-		let selectFields = '*';
-
+	const createQuery = (_operation: string, tableName: string): MockQueryBuilder => {
 		return {
-			select: (fields = '*') => {
-				selectFields = fields;
-				return createQuery(operation, tableName);
+			select: (_fields = '*') => {
+				return createQuery(_operation, tableName);
 			},
-			insert: (insertData) => {
-				data = insertData;
+			insert: (insertData: unknown) => {
 				return {
 					select: () => createQuery('insertSelect', tableName),
-					eq: () => createQuery(operation, tableName),
-					order: () => createQuery(operation, tableName),
-					then: async (callback) => {
+					eq: () => createQuery(_operation, tableName),
+					order: () => createQuery(_operation, tableName),
+					then: async (callback: (result: { data: null; error: null }) => void) => {
 						// Simulate insert
 						if (Array.isArray(insertData)) {
 							tables[tableName].push(...insertData);
 							mockQueries.lastInsertedTasks = insertData;
 						} else {
-							tables[tableName].push(insertData);
+							tables[tableName].push(insertData as object);
 						}
 						callback({ data: null, error: null });
 					}
 				};
 			},
-			update: (updateData) => {
-				data = updateData;
+			update: (_updateData: unknown) => {
 				return {
-					eq: (column: string, value: unknown) => {
-						whereConditions.push([column, value]);
+					eq: (_column: string, _value: unknown) => {
 						return {
-							eq: (column2: string, value2: unknown) => {
-								whereConditions.push([column2, value2]);
+							eq: (_column2: string, _value2: unknown) => {
 								return {
-									then: async (callback) => {
+									then: async (callback: (result: { data: null; error: null }) => void) => {
 										callback({ data: null, error: null });
 									}
 								};
 							},
-							then: async (callback) => {
+							then: async (callback: (result: { data: null; error: null }) => void) => {
 								callback({ data: null, error: null });
 							}
 						};
 					}
 				};
 			},
-			eq: (column: string, value: unknown) => {
-				whereConditions.push([column, value]);
-				return createQuery(operation, tableName);
+			eq: (_column: string, _value: unknown) => {
+				return createQuery(_operation, tableName);
 			},
-			order: (column: string, options?: unknown) => {
-				return createQuery(operation, tableName);
+			order: (_column: string, _options?: unknown) => {
+				return createQuery(_operation, tableName);
 			},
 			single: async () => {
 				const mockCourse = {
@@ -97,7 +84,7 @@ function createMockSupabase(): MockSupabaseInstance {
 				mockQueries.lastInsertedCourse = mockCourse;
 				return { data: mockCourse, error: null };
 			},
-			then: async (callback) => {
+			then: async (callback: (result: { data: unknown[]; error: null }) => void) => {
 				return callback({ data: tables[tableName], error: null });
 			}
 		};
@@ -141,7 +128,7 @@ function generateCourseTasks(
 	assignmentHours: number
 ): TaskToInsert[] {
 	const tasksToInsert: TaskToInsert[] = [];
-	let currentDate = new Date(startDate);
+	const currentDate = new Date(startDate);
 	let weekCounter = 1;
 
 	while (currentDate <= endDate) {
@@ -178,27 +165,16 @@ function generateCourseTasks(
 }
 
 describe('Task Generation Integration Tests', () => {
-	let mockSupabase: MockSupabaseInstance;
 	let userId: string;
 	let courseId: string;
 
 	beforeEach(() => {
-		mockSupabase = createMockSupabase();
 		userId = 'test-user-' + Date.now();
 		courseId = 'test-course-' + Date.now();
 	});
 
 	describe('Course Creation with Auto-Generated Tasks', () => {
 		it('should create course and generate tasks in single operation', async () => {
-			const courseData = {
-				user_id: userId,
-				name: 'Mathematics 101',
-				ects_points: 10,
-				start_date: '2024-11-04',
-				end_date: '2024-11-18',
-				lecture_weekdays: '[1]'
-			};
-
 			const { lectureHours, assignmentHours } = convertEctsToWeeklyHours(10);
 
 			const tasks = generateCourseTasks(
@@ -237,7 +213,15 @@ describe('Task Generation Integration Tests', () => {
 			const endDate = new Date('2024-12-31');
 
 			// Invalid: start > end
-			const invalidTasks = generateCourseTasks(userId, courseId, new Date('2024-12-31'), startDate, [1], 2, 2);
+			const invalidTasks = generateCourseTasks(
+				userId,
+				courseId,
+				new Date('2024-12-31'),
+				startDate,
+				[1],
+				2,
+				2
+			);
 			expect(invalidTasks).toHaveLength(0);
 
 			// Valid: start <= end
@@ -457,7 +441,9 @@ describe('Task Generation Integration Tests', () => {
 			};
 
 			expect(courseData.ects_points).toBeGreaterThan(0);
-			expect(new Date(courseData.start_date).getTime()).toBeLessThanOrEqual(new Date(courseData.end_date).getTime());
+			expect(new Date(courseData.start_date).getTime()).toBeLessThanOrEqual(
+				new Date(courseData.end_date).getTime()
+			);
 
 			// Step 2: Convert ECTS
 			const { lectureHours, assignmentHours } = convertEctsToWeeklyHours(courseData.ects_points);

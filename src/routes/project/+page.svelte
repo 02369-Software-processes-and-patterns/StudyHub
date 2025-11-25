@@ -23,11 +23,13 @@
 		<header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between md:mb-8">
 			<div>
 				<h1
-					class="mb-2 bg-gradient-to-r from-violet-600 to-blue-600 bg-clip-text text-2xl leading-tight font-bold text-transparent sm:text-3xl md:text-4xl md:mb-3"
+					class="mb-2 bg-gradient-to-r from-violet-600 to-blue-600 bg-clip-text text-2xl leading-tight font-bold text-transparent sm:text-3xl md:mb-3 md:text-4xl"
 				>
 					My Projects
 				</h1>
-				<p class="text-sm text-gray-600 sm:text-base">View and manage all your collaborative projects</p>
+				<p class="text-sm text-gray-600 sm:text-base">
+					View and manage all your collaborative projects
+				</p>
 			</div>
 
 			<button
@@ -74,8 +76,8 @@
 	</div>
 </div>
 
-<AddProjectModal 
-	bind:showModal={showAddProjectModal} 
+<AddProjectModal
+	bind:showModal={showAddProjectModal}
 	courses={data.courses}
 	on:projectAdded={handleProjectAdded}
 />

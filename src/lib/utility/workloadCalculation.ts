@@ -6,7 +6,7 @@ export interface Task {
 	status: TaskStatus;
 	deadline?: string | null;
 	effort_hours?: number | null;
-	[key: string]: any;
+	[key: string]: unknown;
 }
 
 export interface DayData {
@@ -29,11 +29,11 @@ export interface WeekData {
  * Get the start of the week (Monday) for a given date
  */
 export function getStartOfWeek(date: Date): Date {
-    const d = new Date(date);
-    const day = d.getDay();
-    // Mandag som start på ugen (0 = søndag, 1 = mandag, ...)
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    return new Date(d.setDate(diff));
+	const d = new Date(date);
+	const day = d.getDay();
+	// Mandag som start på ugen (0 = søndag, 1 = mandag, ...)
+	const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+	return new Date(d.setDate(diff));
 }
 
 /**
@@ -141,50 +141,50 @@ export function calculateWeekData(tasks: Task[], weekOffset: number = 0): DayDat
  * @returns Array of weekly workload data
  */
 export function calculateMonthData(tasks: Task[], monthOffset: number = 0): WeekData[] {
-    const now = new Date();
-    const targetDate = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
-    const startOfMonth = getStartOfMonth(targetDate);
-    const endOfMonth = getEndOfMonth(targetDate);
+	const now = new Date();
+	const targetDate = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
+	const startOfMonth = getStartOfMonth(targetDate);
+	const endOfMonth = getEndOfMonth(targetDate);
 
-    // Find første mandag før eller på månedens start
-    let firstMonday = getStartOfWeek(startOfMonth);
-    // Find sidste søndag efter eller på månedens slut
-    let lastSunday = new Date(getStartOfWeek(endOfMonth));
-    lastSunday.setDate(lastSunday.getDate() + 6);
+	// Find første mandag før eller på månedens start
+	const firstMonday = getStartOfWeek(startOfMonth);
+	// Find sidste søndag efter eller på månedens slut
+	const lastSunday = new Date(getStartOfWeek(endOfMonth));
+	lastSunday.setDate(lastSunday.getDate() + 6);
 
-    const weeks: WeekData[] = [];
-    let current = new Date(firstMonday);
+	const weeks: WeekData[] = [];
+	const current = new Date(firstMonday);
 
-    while (current <= lastSunday) {
-        const weekNum = getWeekNumber(current);
-        const weekLabel = `Week ${weekNum}`;
-        weeks.push({
-            weekNumber: weekNum,
-            label: weekLabel,
-            overdue: 0,
-            incomplete: 0,
-            completed: 0
-        });
-        current.setDate(current.getDate() + 7);
-    }
+	while (current <= lastSunday) {
+		const weekNum = getWeekNumber(current);
+		const weekLabel = `Week ${weekNum}`;
+		weeks.push({
+			weekNumber: weekNum,
+			label: weekLabel,
+			overdue: 0,
+			incomplete: 0,
+			completed: 0
+		});
+		current.setDate(current.getDate() + 7);
+	}
 
-    // Map weekNumber til index i weeks array
-    const weekMap = new Map<number, WeekData>();
-    weeks.forEach(w => weekMap.set(w.weekNumber, w));
+	// Map weekNumber til index i weeks array
+	const weekMap = new Map<number, WeekData>();
+	weeks.forEach((w) => weekMap.set(w.weekNumber, w));
 
-    tasks.forEach((task) => {
-        if (!task.deadline) return;
-        const taskDate = new Date(task.deadline);
-        const weekNum = getWeekNumber(taskDate);
-        const weekData = weekMap.get(weekNum);
-        const hours = task.effort_hours || 0;
-        if (!weekData) return;
-        if (isTaskCompleted(task)) weekData.completed += hours;
-        else if (isTaskOverdue(task, now)) weekData.overdue += hours;
-        else if (isTaskIncomplete(task, now)) weekData.incomplete += hours;
-    });
+	tasks.forEach((task) => {
+		if (!task.deadline) return;
+		const taskDate = new Date(task.deadline);
+		const weekNum = getWeekNumber(taskDate);
+		const weekData = weekMap.get(weekNum);
+		const hours = task.effort_hours || 0;
+		if (!weekData) return;
+		if (isTaskCompleted(task)) weekData.completed += hours;
+		else if (isTaskOverdue(task, now)) weekData.overdue += hours;
+		else if (isTaskIncomplete(task, now)) weekData.incomplete += hours;
+	});
 
-    return weeks;
+	return weeks;
 }
 
 /**
@@ -194,11 +194,7 @@ export function calculateMonthData(tasks: Task[], monthOffset: number = 0): Week
  * @param endDate - End date of the range
  * @returns Array of weekly workload data
  */
-export function calculateCustomData(
-	tasks: Task[],
-	startDate: string,
-	endDate: string
-): WeekData[] {
+export function calculateCustomData(tasks: Task[], startDate: string, endDate: string): WeekData[] {
 	if (!startDate || !endDate) {
 		return [];
 	}
@@ -212,7 +208,7 @@ export function calculateCustomData(
 
 	const weeksMap = new Map<number, WeekData>();
 
-	let currentDate = new Date(start);
+	const currentDate = new Date(start);
 	while (currentDate <= end) {
 		const weekNum = getWeekNumber(currentDate);
 		if (!weeksMap.has(weekNum)) {

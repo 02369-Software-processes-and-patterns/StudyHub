@@ -58,8 +58,8 @@
 		</div>
 	{/if}
 
-	<form 
-		method="POST" 
+	<form
+		method="POST"
 		action="?/addCourse"
 		use:enhance={() => {
 			loading = true;
@@ -77,95 +77,97 @@
 		}}
 		class="space-y-4"
 	>
+		<input type="hidden" name="lecture_weekdays" value={JSON.stringify(selectedWeekdays)} />
 
-				<input type="hidden" name="lecture_weekdays" value={JSON.stringify(selectedWeekdays)} />
+		<label class="block">
+			<span class="font-medium text-gray-700">Course Name *</span>
+			<input
+				type="text"
+				name="name"
+				bind:value={name}
+				required
+				disabled={loading}
+				class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 disabled:cursor-not-allowed disabled:bg-gray-100"
+			/>
+		</label>
 
-				<label class="block">
-					<span class="text-gray-700 font-medium">Course Name *</span>
-					<input 
-						type="text" 
-						name="name"
-						bind:value={name} 
-						required 
-						disabled={loading}
-						class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 disabled:bg-gray-100 disabled:cursor-not-allowed px-3 py-2 border"
-					/>
-				</label>
+		<label class="block">
+			<span class="font-medium text-gray-700">ECTS Points *</span>
+			<select
+				name="ects_points"
+				bind:value={ects_points}
+				required
+				disabled={loading}
+				class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 disabled:cursor-not-allowed disabled:bg-gray-100"
+			>
+				<option value="">Select ECTS</option>
+				{#each ectsOptions as option (option.value)}
+					<option value={option.value}>
+						{option.label}
+					</option>
+				{/each}
+			</select>
+		</label>
 
-				<label class="block">
-					<span class="text-gray-700 font-medium">ECTS Points *</span>
-					<select 
-						name="ects_points"
-						bind:value={ects_points} 
-						required 
-						disabled={loading}
-						class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 disabled:bg-gray-100 disabled:cursor-not-allowed px-3 py-2 border"
+		<div class="grid grid-cols-2 gap-4">
+			<label class="block">
+				<span class="font-medium text-gray-700">Start Date</span>
+				<input
+					type="date"
+					name="start_date"
+					bind:value={start_date}
+					disabled={loading}
+					class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 disabled:cursor-not-allowed disabled:bg-gray-100"
+				/>
+			</label>
+
+			<label class="block">
+				<span class="font-medium text-gray-700">End Date</span>
+				<input
+					type="date"
+					name="end_date"
+					bind:value={end_date}
+					disabled={loading}
+					class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 disabled:cursor-not-allowed disabled:bg-gray-100"
+				/>
+			</label>
+		</div>
+
+		<div>
+			<p class="mb-2 font-medium text-gray-700">Lecture days</p>
+			<div class="flex gap-2">
+				{#each weekdays as day (day.value)}
+					<label
+						class="flex cursor-pointer items-center gap-2 rounded-md border border-gray-300 px-3 py-2 transition hover:bg-gray-50"
 					>
-						<option value="">Select ECTS</option>
-						{#each ectsOptions as option (option.value)}
-							<option value={option.value}>
-								{option.label}
-							</option>
-						{/each}
-					</select>
-				</label>
-
-				<div class="grid grid-cols-2 gap-4">
-					<label class="block">
-						<span class="text-gray-700 font-medium">Start Date</span>
-						<input 
-							type="date" 
-							name="start_date"
-							bind:value={start_date} 
+						<input
+							type="checkbox"
+							checked={selectedWeekdays.includes(day.value)}
+							on:change={() => toggleWeekday(day.value)}
 							disabled={loading}
-							class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 disabled:bg-gray-100 disabled:cursor-not-allowed px-3 py-2 border"
+							class="rounded text-blue-600 focus:ring-blue-500"
 						/>
+						<span class="text-sm">{day.label}</span>
 					</label>
-
-					<label class="block">
-						<span class="text-gray-700 font-medium">End Date</span>
-						<input 
-							type="date" 
-							name="end_date"
-							bind:value={end_date} 
-							disabled={loading}
-							class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 disabled:bg-gray-100 disabled:cursor-not-allowed px-3 py-2 border"
-						/>
-					</label>
-				</div>
-
-			<div>
-				<p class="text-gray-700 font-medium mb-2">Lecture days</p>
-				<div class="flex gap-2">
-					{#each weekdays as day}
-						<label class="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 transition">
-							<input
-								type="checkbox"
-								checked={selectedWeekdays.includes(day.value)}
-								on:change={() => toggleWeekday(day.value)}
-								disabled={loading}
-								class="rounded text-blue-600 focus:ring-blue-500"
-							/>
-							<span class="text-sm">{day.label}</span>
-						</label>
-					{/each}
-				</div>
-			</div>				<div class="flex gap-3 pt-4 border-t border-gray-200">
-					<button 
-						type="button" 
-						on:click={closeModal} 
-					disabled={loading}
-					class="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
-				>
-					Cancel
-				</button>
-				<button 
-					type="submit" 
-					disabled={loading}
-					class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
-				>
-					{loading ? 'Creating...' : 'Create Course'}
-				</button>
+				{/each}
 			</div>
-		</form>
+		</div>
+		<div class="flex gap-3 border-t border-gray-200 pt-4">
+			<button
+				type="button"
+				on:click={closeModal}
+				disabled={loading}
+				class="flex-1 rounded-md border border-gray-300 px-4 py-2 font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+			>
+				Cancel
+			</button>
+			<button
+				type="submit"
+				disabled={loading}
+				class="flex-1 rounded-md bg-blue-600 px-4 py-2 font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+			>
+				{loading ? 'Creating...' : 'Create Course'}
+			</button>
+		</div>
+	</form>
 </Modal>

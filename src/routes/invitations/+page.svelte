@@ -47,15 +47,17 @@
 	<div class="container mx-auto max-w-4xl px-4 py-8">
 		<!-- Header -->
 		<div class="mb-8">
-			<h1 class="text-4xl font-bold text-gray-900 mb-2">Project Invitations</h1>
+			<h1 class="mb-2 text-4xl font-bold text-gray-900">Project Invitations</h1>
 			<p class="text-lg text-gray-600">Review and respond to project invitations you've received</p>
 		</div>
 
 		{#if data.invitations.length === 0}
 			<!-- Empty State -->
-			<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-				<div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-					<svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+			<div class="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-sm">
+				<div
+					class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100"
+				>
+					<svg class="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							stroke-linecap="round"
 							stroke-linejoin="round"
@@ -64,11 +66,11 @@
 						/>
 					</svg>
 				</div>
-				<h2 class="text-xl font-semibold text-gray-900 mb-2">No pending invitations</h2>
-				<p class="text-gray-600 mb-6">You don't have any project invitations at the moment.</p>
+				<h2 class="mb-2 text-xl font-semibold text-gray-900">No pending invitations</h2>
+				<p class="mb-6 text-gray-600">You don't have any project invitations at the moment.</p>
 				<a
 					href="/dashboard"
-					class="inline-block px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+					class="inline-block rounded-lg bg-indigo-600 px-6 py-2 font-medium text-white transition-colors hover:bg-indigo-700"
 				>
 					Go to Dashboard
 				</a>
@@ -76,26 +78,30 @@
 		{:else}
 			<!-- Invitations List -->
 			<div class="space-y-4">
-				{#each data.invitations as invitation}
+				{#each data.invitations as invitation (invitation.id)}
 					<div
-						class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all hover:border-gray-300"
+						class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-all hover:border-gray-300 hover:shadow-md"
 					>
-						<div class="flex flex-col md:flex-row items-start justify-between gap-6">
+						<div class="flex flex-col items-start justify-between gap-6 md:flex-row">
 							<!-- Left Content -->
-							<div class="flex-1 min-w-0">
+							<div class="min-w-0 flex-1">
 								<!-- Project Title and Role -->
-								<div class="flex items-center gap-3 mb-3 flex-wrap">
+								<div class="mb-3 flex flex-wrap items-center gap-3">
 									<h3 class="text-xl font-semibold text-gray-900">
 										{invitation.project.name}
 									</h3>
-									<span class="px-3 py-1 text-sm font-medium rounded-full {getRoleColor(invitation.role)}">
+									<span
+										class="rounded-full px-3 py-1 text-sm font-medium {getRoleColor(
+											invitation.role
+										)}"
+									>
 										{invitation.role}
 									</span>
 								</div>
 
 								<!-- Project Description -->
 								{#if invitation.project.description}
-									<p class="text-gray-600 mb-4 text-sm leading-relaxed">
+									<p class="mb-4 text-sm leading-relaxed text-gray-600">
 										{invitation.project.description}
 									</p>
 								{/if}
@@ -104,7 +110,7 @@
 								<div class="flex flex-wrap items-center gap-4 text-sm text-gray-500">
 									<div class="flex items-center gap-2">
 										<svg
-											class="w-4 h-4 flex-shrink-0"
+											class="h-4 w-4 flex-shrink-0"
 											fill="none"
 											stroke="currentColor"
 											viewBox="0 0 24 24"
@@ -120,7 +126,7 @@
 									</div>
 									<div class="flex items-center gap-2">
 										<svg
-											class="w-4 h-4 flex-shrink-0"
+											class="h-4 w-4 flex-shrink-0"
 											fill="none"
 											stroke="currentColor"
 											viewBox="0 0 24 24"
@@ -138,18 +144,18 @@
 							</div>
 
 							<!-- Right Actions -->
-							<div class="flex flex-col sm:flex-row gap-2 w-full md:w-auto md:flex-col">
+							<div class="flex w-full flex-col gap-2 sm:flex-row md:w-auto md:flex-col">
 								<button
 									disabled={loadingStates[invitation.id]}
 									onclick={() => handleAccept(invitation.id)}
-									class="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors font-medium whitespace-nowrap order-first sm:order-none"
+									class="order-first rounded-lg bg-green-600 px-6 py-2.5 font-medium whitespace-nowrap text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-green-400 sm:order-none"
 								>
 									{loadingStates[invitation.id] ? 'Processing...' : 'Accept'}
 								</button>
 								<button
 									disabled={loadingStates[invitation.id]}
 									onclick={() => handleDecline(invitation.id)}
-									class="px-6 py-2.5 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors font-medium whitespace-nowrap"
+									class="rounded-lg border-2 border-gray-300 bg-white px-6 py-2.5 font-medium whitespace-nowrap text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:bg-gray-100"
 								>
 									{loadingStates[invitation.id] ? 'Processing...' : 'Decline'}
 								</button>
@@ -160,10 +166,11 @@
 			</div>
 
 			<!-- Footer Info -->
-			<div class="mt-8 bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+			<div class="mt-8 rounded-lg border border-indigo-200 bg-indigo-50 p-4">
 				<p class="text-sm text-indigo-700">
 					<strong>Tip:</strong> You have {data.invitations.length}
-					{data.invitations.length === 1 ? 'invitation' : 'invitations'} to review. Accept to join a project or decline if you're not interested.
+					{data.invitations.length === 1 ? 'invitation' : 'invitations'} to review. Accept to join a
+					project or decline if you're not interested.
 				</p>
 			</div>
 		{/if}

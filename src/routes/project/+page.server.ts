@@ -62,6 +62,13 @@ export const actions: Actions = {
 		}
 
 		// Create the project with owner
+		// Import ProjectStatus type from db.ts which is 'planning' | 'active' | 'completed' | 'on-hold'
+		type ProjectStatusType = 'planning' | 'active' | 'completed' | 'on-hold';
+		const validStatuses: ProjectStatusType[] = ['planning', 'active', 'on-hold', 'completed'];
+		const projectStatus: ProjectStatusType = validStatuses.includes(status as ProjectStatusType)
+			? (status as ProjectStatusType)
+			: 'planning';
+
 		const { data: newProject, error: projectError } = await createProject(
 			supabase,
 			authResult.userId,
@@ -69,7 +76,7 @@ export const actions: Actions = {
 				name,
 				description,
 				course_id: course_id || null,
-				status: (status as any) || 'planning'
+				status: projectStatus
 			}
 		);
 
@@ -80,7 +87,11 @@ export const actions: Actions = {
 
 		// Add invited members
 		if (invitedMembers.length > 0) {
-			const { error: membersError } = await addProjectMembers(supabase, newProject.id, invitedMembers);
+			const { error: membersError } = await addProjectMembers(
+				supabase,
+				newProject.id,
+				invitedMembers
+			);
 			if (membersError) {
 				console.error('Error adding invited members:', membersError);
 				// Continue anyway, owner is added

@@ -23,60 +23,11 @@
 	export let showFilters: boolean = true;
 	export let totalTasksOverride: number | null = null;
 
-	let selectedTaskIds: Set<string | number> = new Set();
-	let isSubmittingBatch = false;
-
 	// Delete modal state
 	let deleteModalOpen = false;
 	let taskToDelete: Task | null = null;
 	let isDeleting: Record<string | number, boolean> = {};
 	let deleteError = '';
-
-	function toggleTaskSelection(taskId: string | number) {
-		if (selectedTaskIds.has(taskId)) {
-			selectedTaskIds.delete(taskId);
-		} else {
-			selectedTaskIds.add(taskId);
-		}
-		selectedTaskIds = selectedTaskIds; // trigger reactivity
-	}
-
-	function toggleSelectAll() {
-		const selectableTasks = sortedTasks.filter(task => task.status !== 'completed');
-		if (selectableTasks.every(task => selectedTaskIds.has(task.id))) {
-			selectedTaskIds.clear();
-		} else {
-			selectableTasks.forEach(task => selectedTaskIds.add(task.id));
-		}
-		selectedTaskIds = selectedTaskIds; // trigger reactivity
-	}
-
-	async function markSelectedAsCompleted() {
-		if (selectedTaskIds.size === 0) return;
-		isSubmittingBatch = true;
-		
-		try {
-			const formData = new FormData();
-			Array.from(selectedTaskIds).forEach(id => {
-				formData.append('task_ids', String(id));
-			});
-
-			const response = await fetch('?/updateTasksBatch', {
-				method: 'POST',
-				body: formData
-			});
-
-			if (response.ok) {
-				selectedTaskIds.clear();
-				selectedTaskIds = selectedTaskIds;
-				await invalidateAll();
-			}
-		} catch (err) {
-			console.error('Error marking tasks as completed:', err);
-		} finally {
-			isSubmittingBatch = false;
-		}
-	}
 
 	// Delete modal functions
 	function openDeleteModal(task: Task) {
@@ -108,7 +59,7 @@
 
 			// Parse the response to check for success
 			const result = await response.json();
-			
+
 			// SvelteKit form actions return { type: 'success' } or { type: 'failure' }
 			if (result.type === 'success' || (response.ok && !result.type)) {
 				closeDeleteModal();
@@ -148,15 +99,11 @@
 	] as const satisfies ReadonlyArray<{ value: TaskStatus; label: string }>;
 
 	// Remove "completed" from dropdown
-	const statusOptionsNoCompleted = statusOptions.filter(o => o.value !== 'completed');
+	const statusOptionsNoCompleted = statusOptions.filter((o) => o.value !== 'completed');
 
 	// Build course options from tasks
 	$: courseOptions = Array.from(
-		new Map(
-			tasks
-				.filter((t) => t.course)
-				.map((t) => [t.course!.id, t.course!])
-		).values()
+		new Map(tasks.filter((t) => t.course).map((t) => [t.course!.id, t.course!])).values()
 	);
 
 	// Clear all filters
@@ -291,7 +238,7 @@
 					aria-label="Filter by status"
 				>
 					<option value="all">Status</option>
-					{#each statusOptions as opt}
+					{#each statusOptions as opt (opt.value)}
 						<option value={opt.value}>{opt.label}</option>
 					{/each}
 				</select>
@@ -302,7 +249,7 @@
 					aria-label="Filter by course"
 				>
 					<option value="all">Courses</option>
-					{#each courseOptions as c}
+					{#each courseOptions as c (c.id)}
 						<option value={c.id}>{c.name}</option>
 					{/each}
 				</select>
@@ -348,21 +295,41 @@
 		<table class="min-w-full divide-y divide-gray-200">
 			<thead class="bg-gray-50">
 				<tr>
-					<th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3">Task</th>
-					<th class="hidden px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:table-cell md:px-6 md:py-3">Deadline</th>
-					<th class="hidden px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:table-cell sm:px-4 md:px-6 md:py-3">Course</th>
-					<th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3">Status</th>
-					<th class="hidden px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3 lg:table-cell">Time</th>
-					<th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3">Done</th>
-					<th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3 w-10"></th>
+					<th
+						class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3"
+						>Task</th
+					>
+					<th
+						class="hidden px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:table-cell md:px-6 md:py-3"
+						>Deadline</th
+					>
+					<th
+						class="hidden px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:table-cell sm:px-4 md:px-6 md:py-3"
+						>Course</th
+					>
+					<th
+						class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3"
+						>Status</th
+					>
+					<th
+						class="hidden px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3 lg:table-cell"
+						>Time</th
+					>
+					<th
+						class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3"
+						>Done</th
+					>
+					<th
+						class="w-10 px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3"
+					></th>
 				</tr>
 			</thead>
 
 			<tbody class="divide-y divide-gray-200 bg-white">
 				{#if sortedTasks.length > 0}
 					{#each sortedTasks as task (task.id)}
-						<tr 
-							class="transition hover:bg-gray-50 cursor-pointer {getRowClass(task)}"
+						<tr
+							class="cursor-pointer transition hover:bg-gray-50 {getRowClass(task)}"
 							on:click={(e) => {
 								// Don't open edit if clicking on interactive elements
 								const target = e.target as HTMLElement;
@@ -393,7 +360,10 @@
 										{task.name}
 									{/if}
 								</div>
-								<div class="mt-0.5 text-xs md:hidden {getDeadlineClass(task)}" title={task.deadline}>
+								<div
+									class="mt-0.5 text-xs md:hidden {getDeadlineClass(task)}"
+									title={task.deadline}
+								>
 									{fmtDeadline(task.deadline)}
 								</div>
 								<div class="mt-0.5 text-xs text-gray-500 sm:hidden">
@@ -405,30 +375,43 @@
 							</td>
 
 							<td
-								class="hidden px-2 py-2 text-xs sm:px-4 sm:text-sm md:table-cell md:px-6 md:py-4 {getDeadlineClass(task)}"
+								class="hidden px-2 py-2 text-xs sm:px-4 sm:text-sm md:table-cell md:px-6 md:py-4 {getDeadlineClass(
+									task
+								)}"
 								title={task.deadline}
 							>
 								{fmtDeadline(task.deadline)}
 							</td>
 
-							<td class="px-2 py-2 text-xs text-gray-700 sm:px-4 md:px-6 md:py-4 sm:text-sm hidden sm:table-cell">
+							<td
+								class="hidden px-2 py-2 text-xs text-gray-700 sm:table-cell sm:px-4 sm:text-sm md:px-6 md:py-4"
+							>
 								{task.course?.name ?? '-'}
 							</td>
 
 							<!-- STATUS dropdown (hidden when completed) -->
 							<td class="px-2 py-2 text-xs sm:px-4 md:px-6 md:py-4">
 								{#if task.status === 'completed'}
-									<span class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-green-100 text-green-700 text-xs font-medium sm:text-sm">
-										<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+									<span
+										class="inline-flex items-center gap-1 rounded-md bg-green-100 px-2 py-1 text-xs font-medium text-green-700 sm:text-sm"
+									>
+										<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M5 13l4 4L19 7"
+											/>
 										</svg>
 										Completed
 									</span>
 								{:else}
-									<form 
-										method="POST" 
-										action="?/updateTask" 
-										use:enhance={() => ({ update }) => update({ reset: false })}
+									<form
+										method="POST"
+										action="?/updateTask"
+										use:enhance={() =>
+											({ update }) =>
+												update({ reset: false })}
 									>
 										<input type="hidden" name="task_id" value={task.id} />
 										<select
@@ -448,30 +431,46 @@
 							</td>
 
 							<!-- TIME -->
-							<td class="px-2 py-2 text-xs text-gray-700 sm:px-4 md:px-6 md:py-4 sm:text-sm hidden lg:table-cell">
+							<td
+								class="hidden px-2 py-2 text-xs text-gray-700 sm:px-4 sm:text-sm md:px-6 md:py-4 lg:table-cell"
+							>
 								{task.effort_hours != null ? `${task.effort_hours} h` : '-'}
 							</td>
 
 							<!-- DONE checkmark icon -->
 							<td class="px-2 py-2 text-xs sm:px-4 md:px-6 md:py-4">
-								<form 
-									method="POST" 
-									action="?/updateTask" 
-									use:enhance={() => ({ update }) => update({ reset: false })}
+								<form
+									method="POST"
+									action="?/updateTask"
+									use:enhance={() =>
+										({ update }) =>
+											update({ reset: false })}
 								>
 									<input type="hidden" name="task_id" value={task.id} />
-									<input type="hidden" name="status" value={task.status === 'completed' ? UNCHECK_STATUS : 'completed'} />
+									<input
+										type="hidden"
+										name="status"
+										value={task.status === 'completed' ? UNCHECK_STATUS : 'completed'}
+									/>
 
 									<button
 										type="submit"
-										class="inline-flex items-center justify-center w-7 h-7 rounded-full transition-all duration-200 {task.status === 'completed' 
-											? 'bg-green-500 text-white shadow-md hover:bg-green-600' 
+										class="inline-flex h-7 w-7 items-center justify-center rounded-full transition-all duration-200 {task.status ===
+										'completed'
+											? 'bg-green-500 text-white shadow-md hover:bg-green-600'
 											: 'border-2 border-gray-300 text-gray-400 hover:border-green-500 hover:text-green-500'}"
-										aria-label={task.status === 'completed' ? 'Mark as incomplete' : 'Mark as completed'}
+										aria-label={task.status === 'completed'
+											? 'Mark as incomplete'
+											: 'Mark as completed'}
 										title={task.status === 'completed' ? 'Mark as incomplete' : 'Mark as completed'}
 									>
-										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+										<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2.5"
+												d="M5 13l4 4L19 7"
+											/>
 										</svg>
 									</button>
 								</form>
@@ -483,18 +482,38 @@
 									type="button"
 									on:click={() => openDeleteModal(task)}
 									disabled={isDeleting[task.id]}
-									class="inline-flex items-center justify-center w-6 h-6 rounded text-red-600 hover:bg-red-50 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+									class="inline-flex h-6 w-6 items-center justify-center rounded text-red-600 transition hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
 									title="Delete task"
 									aria-label="Delete task"
 								>
 									{#if isDeleting[task.id]}
-										<svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-											<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+										<svg
+											class="h-4 w-4 animate-spin"
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+										>
+											<circle
+												class="opacity-25"
+												cx="12"
+												cy="12"
+												r="10"
+												stroke="currentColor"
+												stroke-width="4"
+											></circle>
+											<path
+												class="opacity-75"
+												fill="currentColor"
+												d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+											></path>
 										</svg>
 									{:else}
-										<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-											<path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+										<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+											<path
+												fill-rule="evenodd"
+												d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+												clip-rule="evenodd"
+											/>
 										</svg>
 									{/if}
 								</button>
@@ -508,7 +527,12 @@
 </ListCard>
 
 <!-- Delete Confirmation Modal -->
-<Modal bind:isOpen={deleteModalOpen} title="Delete Task" maxWidth="max-w-sm" on:close={closeDeleteModal}>
+<Modal
+	bind:isOpen={deleteModalOpen}
+	title="Delete Task"
+	maxWidth="max-w-sm"
+	on:close={closeDeleteModal}
+>
 	{#if taskToDelete}
 		{#if deleteError}
 			<div class="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
@@ -518,19 +542,19 @@
 
 		<div class="space-y-4">
 			<p class="text-gray-600">
-				Are you sure you want to delete <span class="font-semibold text-gray-900">"{taskToDelete.name}"</span>?
+				Are you sure you want to delete <span class="font-semibold text-gray-900"
+					>"{taskToDelete.name}"</span
+				>?
 			</p>
-			<p class="text-sm text-gray-500">
-				This action cannot be undone.
-			</p>
+			<p class="text-sm text-gray-500">This action cannot be undone.</p>
 		</div>
 
-		<div class="flex gap-3 pt-6 border-t border-gray-200 mt-4">
+		<div class="mt-4 flex gap-3 border-t border-gray-200 pt-6">
 			<button
 				type="button"
 				on:click={closeDeleteModal}
 				disabled={Object.values(isDeleting).some(Boolean)}
-				class="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
+				class="flex-1 rounded-md border border-gray-300 px-4 py-2 font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
 			>
 				Cancel
 			</button>
@@ -538,7 +562,7 @@
 				type="button"
 				on:click={confirmDelete}
 				disabled={Object.values(isDeleting).some(Boolean)}
-				class="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
+				class="flex-1 rounded-md bg-red-600 px-4 py-2 font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
 			>
 				{Object.values(isDeleting).some(Boolean) ? 'Deleting...' : 'Delete Task'}
 			</button>

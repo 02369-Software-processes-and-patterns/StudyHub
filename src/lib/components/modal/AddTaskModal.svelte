@@ -40,9 +40,9 @@
 		</div>
 	{/if}
 
-	<form 
-		method="POST" 
-		action="?/create" 
+	<form
+		method="POST"
+		action="?/create"
 		use:enhance={() => {
 			return async ({ result, update }) => {
 				if (result.type === 'success') {
@@ -58,74 +58,74 @@
 		}}
 		class="space-y-4"
 	>
-			<label class="block">
-				<span class="text-gray-700 font-medium">Task Name *</span>
-				<input
-					id="name"
-					name="name"
-					type="text"
-					bind:value={formData.name}
-					required
-					class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 px-3 py-2 border"
-					placeholder="Enter task name"
-				/>
-			</label>
+		<label class="block">
+			<span class="font-medium text-gray-700">Task Name *</span>
+			<input
+				id="name"
+				name="name"
+				type="text"
+				bind:value={formData.name}
+				required
+				class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
+				placeholder="Enter task name"
+			/>
+		</label>
 
-			<label class="block">
-				<span class="text-gray-700 font-medium">Effort (hours) *</span>
-				<input
-					id="effort_hours"
-					name="effort_hours"
-					type="number"
-					min="0"
-					step="0.5"
-					bind:value={formData.effort_hours}
-					required
-					class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 px-3 py-2 border"
-					placeholder="Enter estimated hours"
-				/>
-			</label>
+		<label class="block">
+			<span class="font-medium text-gray-700">Effort (hours) *</span>
+			<input
+				id="effort_hours"
+				name="effort_hours"
+				type="number"
+				min="0"
+				step="0.5"
+				bind:value={formData.effort_hours}
+				required
+				class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
+				placeholder="Enter estimated hours"
+			/>
+		</label>
 
-			<label class="block">
-				<span class="text-gray-700 font-medium">Course</span>
-				<select
-					id="course_id"
-					name="course_id"
-					bind:value={formData.course_id}
-					class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 px-3 py-2 border"
-				>
-					<option value="">None (optional)</option>
-					{#each courses as course (course.id)}
-						<option value={course.id}>{course.name}</option>
-					{/each}
-				</select>
-			</label>
+		<label class="block">
+			<span class="font-medium text-gray-700">Course</span>
+			<select
+				id="course_id"
+				name="course_id"
+				bind:value={formData.course_id}
+				class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
+			>
+				<option value="">None (optional)</option>
+				{#each courses as course (course.id)}
+					<option value={course.id}>{course.name}</option>
+				{/each}
+			</select>
+		</label>
 
-			<label class="block">
-				<span class="text-gray-700 font-medium">Deadline *</span>
-				<input
-					id="deadline"
-					name="deadline"
-					type="datetime-local"
-					bind:value={formData.deadline}
-					required
-					class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 px-3 py-2 border"
-				/>
-			</label>
-			<div class="flex gap-3 pt-4 border-t border-gray-200">
-				<button
-					type="button"
-					on:click={closeModal}
-					class="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium transition"
-				>
-					Cancel
-				</button>
-				<button
-					type="submit"
-					class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium transition"
-				>
-					Add Task
-				</button>
-			</div>
-		</form>
+		<label class="block">
+			<span class="font-medium text-gray-700">Deadline *</span>
+			<input
+				id="deadline"
+				name="deadline"
+				type="datetime-local"
+				bind:value={formData.deadline}
+				required
+				class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
+			/>
+		</label>
+		<div class="flex gap-3 border-t border-gray-200 pt-4">
+			<button
+				type="button"
+				on:click={closeModal}
+				class="flex-1 rounded-md border border-gray-300 px-4 py-2 font-medium text-gray-700 transition hover:bg-gray-50"
+			>
+				Cancel
+			</button>
+			<button
+				type="submit"
+				class="flex-1 rounded-md bg-blue-600 px-4 py-2 font-medium text-white transition hover:bg-blue-700"
+			>
+				Add Task
+			</button>
+		</div>
+	</form>
 </Modal>
