@@ -7,6 +7,7 @@ import {
 	updateTask,
 	deleteTask,
 	updateCourse,
+	deleteCourse,
 	deleteTasksByCourse,
 	createTasksBatch,
 	parseTaskUpdateForm,
@@ -242,6 +243,44 @@ export const actions: Actions = {
 		} catch (err) {
 			console.error('updateCourse action crashed:', err);
 			return fail(500, { error: 'Internal error while updating course' });
+		}
+	},
+
+	deleteCourse: async ({ request, locals: { supabase, safeGetSession } }) => {
+		const { session } = await safeGetSession();
+
+		if (!session) {
+			return fail(401, { error: 'Not authenticated' });
+		}
+
+		const formData = await request.formData();
+		const courseId = formData.get('course_id')?.toString();
+
+		if (!courseId) {
+			return fail(400, { error: 'Missing course_id' });
+		}
+
+		try {
+			// Delete tasks first to avoid orphaned records
+			const { error: tasksError } = await deleteTasksByCourse(supabase, courseId, session.user.id);
+
+			if (tasksError) {
+				console.error('Error deleting tasks:', tasksError);
+				// Continue anyway - try to delete the course
+			}
+
+			// Delete the course
+			const { error: courseError } = await deleteCourse(supabase, courseId, session.user.id);
+
+			if (courseError) {
+				console.error('Error deleting course:', courseError);
+				return fail(500, { error: 'Failed to delete course' });
+			}
+
+			return { success: true };
+		} catch (err) {
+			console.error('deleteCourse action crashed:', err);
+			return fail(500, { error: 'Internal error while deleting course' });
 		}
 	}
 };

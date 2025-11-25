@@ -3,6 +3,7 @@
 	import EmptyState from './EmptyState.svelte';
 	import Modal from '../modal/Modal.svelte';
 	import { createEventDispatcher } from 'svelte';
+	import { invalidateAll } from '$app/navigation';
 
 	type Course = {
 		id: string | number;
@@ -72,6 +73,8 @@
 			if (response.ok) {
 				closeDeleteModal();
 				dispatch('delete', courseToDelete.id);
+				// Refresh the page data
+				await invalidateAll();
 			} else {
 				deleteError = 'Failed to delete course. Please try again.';
 			}

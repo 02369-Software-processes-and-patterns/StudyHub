@@ -8,6 +8,39 @@
 
 	export let data;
 
+	const DASHBOARD_TASK_LIMIT = 5;
+
+	// Compute dashboard tasks: up to 5 upcoming incomplete tasks, filled with completed tasks if needed
+	$: dashboardTasks = (() => {
+		// Get incomplete tasks sorted by deadline (soonest first)
+		const incompleteTasks = data.tasks
+			.filter(task => task.status !== 'completed')
+			.sort((a, b) => {
+				const aDeadline = a.deadline ? new Date(a.deadline).getTime() : Infinity;
+				const bDeadline = b.deadline ? new Date(b.deadline).getTime() : Infinity;
+				return aDeadline - bDeadline;
+			})
+			.slice(0, DASHBOARD_TASK_LIMIT);
+
+		const remainingSlots = DASHBOARD_TASK_LIMIT - incompleteTasks.length;
+
+		if (remainingSlots <= 0) {
+			return incompleteTasks;
+		}
+
+		// Fill remaining slots with completed tasks (most recent deadline first)
+		const completedTasks = data.tasks
+			.filter(task => task.status === 'completed')
+			.sort((a, b) => {
+				const aDeadline = a.deadline ? new Date(a.deadline).getTime() : 0;
+				const bDeadline = b.deadline ? new Date(b.deadline).getTime() : 0;
+				return bDeadline - aDeadline;
+			})
+			.slice(0, remainingSlots);
+
+		return [...incompleteTasks, ...completedTasks];
+	})();
+
 	// Task edit state
 	let isTaskEditOpen = false;
 	let taskToEdit: { id: string | number; name: string; effort_hours?: number | null; course_id?: string | null; deadline?: string | null; } | null = null;
@@ -56,12 +89,19 @@
 	<div class="mb-16 grid gap-8 md:grid-cols-3">
 		<!-- Upcoming Tasks -->
 		<div class="md:col-span-2">
-			<TaskList tasks={data.tasks} maxTasks={6} openEdit={openTaskEdit} />
+			<TaskList 
+				tasks={dashboardTasks} 
+				maxTasks={DASHBOARD_TASK_LIMIT} 
+				preserveOrder={true} 
+				showFilters={false}
+				totalTasksOverride={data.tasks.length}
+				openEdit={openTaskEdit} 
+			/>
 		</div>
 
 		<!-- My Courses -->
 		<div class="md:col-span-1">
-			<CourseList courses={data.courses} maxCourses={6} showStartDate={false} openEdit={openCourseEdit} />
+			<CourseList courses={data.courses} maxCourses={5} showStartDate={false} openEdit={openCourseEdit} on:delete={() => invalidateAll()} />
 		</div>
 	</div>
 

@@ -19,6 +19,9 @@
 	export let maxTasks: number | null = null;
 	export let showViewAll: boolean = true;
 	export let openEdit: (task: Task) => void;
+	export let preserveOrder: boolean = false;
+	export let showFilters: boolean = true;
+	export let totalTasksOverride: number | null = null;
 
 	let selectedTaskIds: Set<string | number> = new Set();
 	let isSubmittingBatch = false;
@@ -90,31 +93,36 @@
 	async function confirmDelete() {
 		if (!taskToDelete) return;
 
-		isDeleting[taskToDelete.id] = true;
+		const taskId = taskToDelete.id; // Save ID before closeDeleteModal sets taskToDelete to null
+		isDeleting[taskId] = true;
 		deleteError = '';
 
 		try {
 			const formData = new FormData();
-			formData.append('task_id', String(taskToDelete.id));
+			formData.append('task_id', String(taskId));
 
 			const response = await fetch('?/deleteTask', {
 				method: 'POST',
 				body: formData
 			});
 
-			if (response.ok) {
+			// Parse the response to check for success
+			const result = await response.json();
+			
+			// SvelteKit form actions return { type: 'success' } or { type: 'failure' }
+			if (result.type === 'success' || (response.ok && !result.type)) {
 				closeDeleteModal();
 				await invalidateAll();
 			} else {
-				deleteError = 'Failed to delete task. Please try again.';
+				deleteError = result.data?.error || 'Failed to delete task. Please try again.';
 			}
 		} catch (err) {
+			// If JSON parsing fails, try to refresh anyway (action might have succeeded)
 			console.error('Error deleting task:', err);
-			deleteError = 'An error occurred while deleting the task. Please try again.';
+			closeDeleteModal();
+			await invalidateAll();
 		} finally {
-			if (taskToDelete) {
-				isDeleting[taskToDelete.id] = false;
-			}
+			isDeleting[taskId] = false;
 		}
 	}
 
@@ -224,8 +232,13 @@
 		return matchesName && matchesStatus && matchesCourse && matchesDeadline;
 	});
 
-	// 2) Sort with memoized timestamps
+	// 2) Sort with memoized timestamps (skip sorting if preserveOrder is true)
 	$: sortedTasks = (() => {
+		// When preserveOrder is true, respect the original order of tasks
+		if (preserveOrder) {
+			return filteredTasks.slice(0, maxTasks ?? filteredTasks.length);
+		}
+
 		const tasksWithTimestamps = filteredTasks.map((task) => ({
 			task,
 			deadlineTs: task.deadline ? new Date(task.deadline).getTime() : Infinity
@@ -247,7 +260,7 @@
 		return sorted.map(({ task }) => task).slice(0, maxTasks ?? filteredTasks.length);
 	})();
 
-	$: totalTasks = tasks.length;
+	$: totalTasks = totalTasksOverride ?? tasks.length;
 </script>
 
 <ListCard
@@ -258,76 +271,78 @@
 	viewAllUrl="/tasks"
 >
 	<!-- TOPBAR FILTERS -->
-	<div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-		<div class="pl-2 text-xs text-gray-500 sm:pl-4">
-			Showing {sortedTasks.length} of {totalTasks} tasks
-		</div>
-
-		<div class="flex flex-wrap items-center gap-2">
-			<input
-				type="text"
-				placeholder="Search task…"
-				class="w-40 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs focus:border-violet-500 focus:ring-violet-500 sm:text-sm"
-				bind:value={nameQuery}
-			/>
-
-			<select
-				bind:value={statusFilter}
-				class="rounded-md border border-gray-300 bg-white px-2 py-1 pr-8 text-xs focus:border-violet-500 focus:ring-violet-500 sm:text-sm"
-				aria-label="Filter by status"
-			>
-				<option value="all">Status</option>
-				{#each statusOptions as opt}
-					<option value={opt.value}>{opt.label}</option>
-				{/each}
-			</select>
-
-			<select
-				bind:value={courseFilter}
-				class="rounded-md border border-gray-300 bg-white px-2 py-1 pr-8 text-xs focus:border-violet-500 focus:ring-violet-500 sm:text-sm"
-				aria-label="Filter by course"
-			>
-				<option value="all">Courses</option>
-				{#each courseOptions as c}
-					<option value={c.id}>{c.name}</option>
-				{/each}
-			</select>
-
-			<div class="flex items-center gap-1">
-				<input
-					type="date"
-					class="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs focus:border-violet-500 focus:ring-violet-500 sm:text-sm"
-					aria-label="Deadline from"
-					bind:value={deadlineFrom}
-				/>
-				<span class="text-xs text-gray-500">–</span>
-				<input
-					type="date"
-					class="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs focus:border-violet-500 focus:ring-violet-500 sm:text-sm"
-					aria-label="Deadline to"
-					bind:value={deadlineTo}
-				/>
+	{#if showFilters}
+		<div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+			<div class="pl-2 text-xs text-gray-500 sm:pl-4">
+				Showing {sortedTasks.length} of {totalTasks} tasks
 			</div>
 
-			<select
-				bind:value={effortSort}
-				class="rounded-md border border-gray-300 bg-white px-2 py-1 pr-8 text-xs focus:border-violet-500 focus:ring-violet-500 sm:text-sm"
-				aria-label="Sort by time"
-			>
-				<option value="none">Time (hours)</option>
-				<option value="asc">Increasing</option>
-				<option value="desc">Decreasing</option>
-			</select>
+			<div class="flex flex-wrap items-center gap-2">
+				<input
+					type="text"
+					placeholder="Search task…"
+					class="w-40 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs focus:border-violet-500 focus:ring-violet-500 sm:text-sm"
+					bind:value={nameQuery}
+				/>
 
-			<button
-				type="button"
-				on:click={clearFilters}
-				class="rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-50 sm:text-sm"
-			>
-				Clear
-			</button>
+				<select
+					bind:value={statusFilter}
+					class="rounded-md border border-gray-300 bg-white px-2 py-1 pr-8 text-xs focus:border-violet-500 focus:ring-violet-500 sm:text-sm"
+					aria-label="Filter by status"
+				>
+					<option value="all">Status</option>
+					{#each statusOptions as opt}
+						<option value={opt.value}>{opt.label}</option>
+					{/each}
+				</select>
+
+				<select
+					bind:value={courseFilter}
+					class="rounded-md border border-gray-300 bg-white px-2 py-1 pr-8 text-xs focus:border-violet-500 focus:ring-violet-500 sm:text-sm"
+					aria-label="Filter by course"
+				>
+					<option value="all">Courses</option>
+					{#each courseOptions as c}
+						<option value={c.id}>{c.name}</option>
+					{/each}
+				</select>
+
+				<div class="flex items-center gap-1">
+					<input
+						type="date"
+						class="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs focus:border-violet-500 focus:ring-violet-500 sm:text-sm"
+						aria-label="Deadline from"
+						bind:value={deadlineFrom}
+					/>
+					<span class="text-xs text-gray-500">–</span>
+					<input
+						type="date"
+						class="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs focus:border-violet-500 focus:ring-violet-500 sm:text-sm"
+						aria-label="Deadline to"
+						bind:value={deadlineTo}
+					/>
+				</div>
+
+				<select
+					bind:value={effortSort}
+					class="rounded-md border border-gray-300 bg-white px-2 py-1 pr-8 text-xs focus:border-violet-500 focus:ring-violet-500 sm:text-sm"
+					aria-label="Sort by time"
+				>
+					<option value="none">Time (hours)</option>
+					<option value="asc">Increasing</option>
+					<option value="desc">Decreasing</option>
+				</select>
+
+				<button
+					type="button"
+					on:click={clearFilters}
+					class="rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-50 sm:text-sm"
+				>
+					Clear
+				</button>
+			</div>
 		</div>
-	</div>
+	{/if}
 
 	<div class="overflow-x-auto">
 		<table class="min-w-full divide-y divide-gray-200">

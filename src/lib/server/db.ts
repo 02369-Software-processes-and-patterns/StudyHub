@@ -19,7 +19,7 @@ export type TaskWithCourse = {
 	name: string;
 	effort_hours: number;
 	deadline: string;
-	status: string;
+	status: TaskStatus;
 	course_id: string | null;
 	created_at: string;
 	course: { id: string; name: string } | null;
@@ -31,7 +31,7 @@ export type Course = {
 	ects_points: number;
 	start_date: string;
 	end_date: string;
-	lecture_weekdays: unknown;
+	lecture_weekdays: number[] | string | null;
 	created_at: string;
 	user_id: string | null;
 };
@@ -203,7 +203,7 @@ export async function getCourses(
 		.eq('user_id', userId)
 		.order(orderBy, { ascending: orderBy === 'name' });
 
-	return { data, error };
+	return { data: data as Course[] | null, error };
 }
 
 /**
@@ -242,7 +242,7 @@ export async function createCourse(
 		.select()
 		.single();
 
-	return { data, error };
+	return { data: data as Course | null, error };
 }
 
 /**
