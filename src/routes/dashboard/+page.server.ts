@@ -1,5 +1,12 @@
 import type { Actions, PageServerLoad } from './$types';
 import { fail } from '@sveltejs/kit';
+import {
+	getTasksWithCourse,
+	getCourses,
+	getAuthenticatedUser,
+	updateTask,
+	parseTaskUpdateForm
+} from '$lib/server/db';
 
 export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession } }) => {
 	const { session } = await safeGetSession();
@@ -8,101 +15,47 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 		return { tasks: [], courses: [] };
 	}
 
-	// Fetch upcoming tasks sorted by deadline
-	const { data: tasks, error: tasksError } = await supabase
-		.from('tasks')
-		.select(
-			`
-            *,
-            course:courses(id, name)
-        `
-		)
-		.eq('user_id', session.user.id)
-		.order('deadline', { ascending: true });
+	// Fetch tasks and courses in parallel
+	const [tasksResult, coursesResult] = await Promise.all([
+		getTasksWithCourse(supabase, session.user.id, 'deadline'),
+		getCourses(supabase, session.user.id, 'name')
+	]);
 
-	if (tasksError) console.error('Error loading tasks:', tasksError);
-
-	// Fetch user's courses
-	const { data: courses, error: coursesError } = await supabase
-		.from('courses')
-		.select('*')
-		.eq('user_id', session.user.id)
-		.order('name', { ascending: true });
-
-	if (coursesError) console.error('Error loading courses:', coursesError);
+	if (tasksResult.error) console.error('Error loading tasks:', tasksResult.error);
+	if (coursesResult.error) console.error('Error loading courses:', coursesResult.error);
 
 	return {
-		tasks: tasks ?? [],
-		courses: courses ?? []
+		tasks: tasksResult.data ?? [],
+		courses: coursesResult.data ?? []
 	};
 };
 
 export const actions: Actions = {
 	updateTask: async ({ request, locals: { supabase } }) => {
 		try {
-			const {
-				data: { user },
-				error: userErr
-			} = await supabase.auth.getUser();
-			if (userErr) return fail(401, { error: userErr.message });
-			if (!user) return fail(401, { error: 'Not authenticated' });
+			// Get authenticated user
+			const authResult = await getAuthenticatedUser(supabase);
+			if (authResult.error) {
+				return fail(authResult.error.status, { error: authResult.error.message });
+			}
 
+			// Parse form data
 			const formData = await request.formData();
-			const task_id = formData.get('task_id')?.toString();
-			if (!task_id) return fail(400, { error: 'Missing task_id' });
+			const { taskId, updates, error: parseError } = parseTaskUpdateForm(formData);
 
-			const patch: Record<string, unknown> = {};
-
-			if (formData.has('status')) {
-				const raw = formData.get('status')?.toString().toLowerCase();
-				const allowed = ['pending', 'todo', 'on-hold', 'working', 'completed'] as const;
-				if (!raw || !allowed.includes(raw as (typeof allowed)[number])) {
-					return fail(400, { error: 'Invalid status value' });
-				}
-				patch.status = raw;
+			if (parseError || !taskId) {
+				return fail(400, { error: parseError ?? 'Missing task_id' });
 			}
 
-			if (formData.has('name')) {
-				const name = formData.get('name')?.toString()?.trim();
-				if (name) patch.name = name;
-			}
-
-			if (formData.has('effort_hours')) {
-				let num = Number.parseFloat(formData.get('effort_hours')?.toString() ?? '');
-				if (!Number.isFinite(num) || num < 0) return fail(400, { error: 'Invalid effort_hours' });
-				num = Math.round(num);
-				patch.effort_hours = num;
-			}
-
-			if (formData.has('deadline')) {
-				const raw = formData.get('deadline')?.toString();
-				if (raw) {
-					const d = new Date(raw);
-					patch.deadline = isNaN(d.getTime()) ? raw : d.toISOString();
-				}
-			}
-
-			if (formData.has('course_id')) {
-				const cid = formData.get('course_id')?.toString() || null;
-				patch.course_id = cid;
-			}
-
-			if (Object.keys(patch).length === 0) {
-				return fail(400, { error: 'No updatable fields provided' });
-			}
-
-			const { error } = await supabase
-				.from('tasks')
-				.update(patch)
-				.eq('id', task_id)
-				.eq('user_id', user.id);
+			// Update the task
+			const { error } = await updateTask(supabase, taskId, authResult.userId, updates);
 
 			if (error) {
 				console.error('Supabase update error:', error);
 				return fail(500, { error: error.message });
 			}
 
-			return { success: true, updated: Object.keys(patch) };
+			return { success: true, updated: Object.keys(updates) };
 		} catch (err) {
 			console.error('updateTask action crashed:', err);
 			return fail(500, { error: 'Internal error while updating task' });
