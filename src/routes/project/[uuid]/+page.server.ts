@@ -32,9 +32,44 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, safeGet
         .eq('user_id', session.user.id)
         .single();
 
+    // Hent alle projektmedlemmer med user information
+    const { data: members, error: membersError } = await supabase
+        .from('project_members')
+        .select('user_id, role, created_at')
+        .eq('project_id', uuid)
+        .order('role', { ascending: false }) // Owners først
+        .order('created_at', { ascending: true });
+
+    let membersWithDetails: Array<{
+        id: string;
+        role: 'Owner' | 'Admin' | 'Member';
+        email: string;
+        name: string;
+    }> = [];
+    if (!membersError && members && members.length > 0) {
+        const userIds = members.map(m => m.user_id);
+        
+        // Brug RPC funktion til at hente brugerdetaljer
+        const { data: userDetails, error: userError } = await supabase
+            .rpc('get_user_details_by_ids', { user_ids: userIds });
+
+        if (!userError && userDetails) {
+            membersWithDetails = members.map(member => {
+                const userDetail = userDetails.find((u: any) => u.id === member.user_id);
+                return {
+                    id: member.user_id,
+                    role: member.role as 'Owner' | 'Admin' | 'Member',
+                    email: userDetail?.email || 'N/A',
+                    name: userDetail?.name || userDetail?.email?.split('@')[0] || 'Unknown User'
+                };
+            });
+        }
+    }
+
     return {
         project,
-        userRole: memberData?.role ?? null
+        userRole: memberData?.role ?? null,
+        members: membersWithDetails
     };
 };
 

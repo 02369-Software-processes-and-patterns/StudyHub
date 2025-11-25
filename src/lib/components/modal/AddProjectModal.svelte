@@ -152,7 +152,7 @@
 				disabled={loading}
 				rows="3"
 				placeholder="Describe your project..."
-				class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 disabled:bg-gray-100 disabled:cursor-not-allowed px-3 py-2 border"
+				class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 disabled:bg-gray-100 disabled:cursor-not-allowed px-3 py-2 border"></textarea>
 			/>
 		</label>
 
