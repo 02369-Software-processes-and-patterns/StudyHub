@@ -1,11 +1,12 @@
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import {
     getAuthenticatedUser,
     getProject,
     getProjectMemberRole,
     getProjectMembers,
-    addProjectMembers
+    addProjectMembers,
+    removeProjectMember
 } from '$lib/server/db';
 
 export const load: PageServerLoad = async ({ params, locals: { supabase } }) => {
@@ -79,5 +80,32 @@ export const actions: Actions = {
         }
 
         return { success: true };
+    },
+    
+    leaveProject: async ({ params, locals: { supabase } }) => {
+        const authResult = await getAuthenticatedUser(supabase);
+        if (authResult.error) {
+            return fail(authResult.error.status, { error: authResult.error.message });
+        }
+
+        const projectId = params.uuid;
+        const userId = authResult.userId;
+
+        // 1. Tjek rolle
+        const { role } = await getProjectMemberRole(supabase, projectId, userId);
+
+        if (role === 'Owner') {
+            return fail(400, { error: 'Owners cannot leave a project. You must delete the project or transfer ownership.' });
+        }
+
+        // 2. Forlad projektet
+        const { error } = await removeProjectMember(supabase, projectId, userId);
+
+        if (error) {
+            console.error('Error leaving project:', error);
+            return fail(500, { error: 'Failed to leave project.' });
+        }
+
+        throw redirect(303, '/project');
     }
 };
