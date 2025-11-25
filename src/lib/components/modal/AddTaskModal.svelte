@@ -43,22 +43,21 @@
 	<form 
 		method="POST" 
 		action="?/create" 
-		use:enhance={({ cancel }) => {
+		use:enhance={() => {
 			return async ({ result, update }) => {
 				if (result.type === 'success') {
 					dispatch('taskAdded');
 					closeModal();
 					resetForm();
 				} else if (result.type === 'failure') {
-					type FailureData = { message?: string };
-					const msg = (result.data as FailureData | undefined)?.message ?? 'Unknown error';
-					errorMessage = msg;
+					type FailureData = { error?: string };
+					errorMessage = (result.data as FailureData | undefined)?.error ?? 'Unknown error';
 				}
 				await update();
 			};
 		}}
-			class="space-y-4"
-		>
+		class="space-y-4"
+	>
 			<label class="block">
 				<span class="text-gray-700 font-medium">Task Name *</span>
 				<input

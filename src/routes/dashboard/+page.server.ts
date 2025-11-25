@@ -9,33 +9,20 @@ import {
 	updateCourse,
 	deleteCourse,
 	deleteTasksByCourse,
-	createTasksBatch,
 	parseTaskUpdateForm,
-	type TaskCreateData
+	regenerateCourseTasks
 } from '$lib/server/db';
 
-/**
- * Convert ECTS points to weekly hours for lectures and assignments
- */
-function convertEctsToWeeklyHours(ects: number): { lectureHours: number; assignmentHours: number } {
-	const ratio = ects / 5.0;
-	return {
-		lectureHours: ratio * 2,
-		assignmentHours: ratio * 2
-	};
-}
-
-export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession } }) => {
-	const { session } = await safeGetSession();
-
-	if (!session) {
+export const load: PageServerLoad = async ({ locals: { supabase } }) => {
+	const authResult = await getAuthenticatedUser(supabase);
+	if (authResult.error) {
 		return { tasks: [], courses: [] };
 	}
 
 	// Fetch tasks and courses in parallel
 	const [tasksResult, coursesResult] = await Promise.all([
-		getTasksWithCourse(supabase, session.user.id, 'deadline'),
-		getCourses(supabase, session.user.id, 'name')
+		getTasksWithCourse(supabase, authResult.userId, 'deadline'),
+		getCourses(supabase, authResult.userId, 'name')
 	]);
 
 	if (tasksResult.error) console.error('Error loading tasks:', tasksResult.error);
@@ -107,12 +94,12 @@ export const actions: Actions = {
 		}
 	},
 
-	updateCourse: async ({ request, locals: { supabase, safeGetSession } }) => {
-		const { session } = await safeGetSession();
-
-		if (!session) {
-			return fail(401, { error: 'Not authenticated' });
+	updateCourse: async ({ request, locals: { supabase } }) => {
+		const authResult = await getAuthenticatedUser(supabase);
+		if (authResult.error) {
+			return fail(authResult.error.status, { error: authResult.error.message });
 		}
+		const userId = authResult.userId;
 
 		const formData = await request.formData();
 		const courseId = formData.get('course_id')?.toString();
@@ -153,7 +140,7 @@ export const actions: Actions = {
 
 		try {
 			// Update the course
-			const { error } = await updateCourse(supabase, courseId, session.user.id, updates);
+			const { error } = await updateCourse(supabase, courseId, userId, updates);
 
 			if (error) {
 				console.error('Error updating course:', error);
@@ -162,80 +149,10 @@ export const actions: Actions = {
 
 			// If scheduling fields changed, regenerate tasks
 			if (schedulingFieldsChanged) {
-				// Delete existing auto-generated tasks
-				await deleteTasksByCourse(supabase, courseId, session.user.id);
-
-				// Get the updated course data to regenerate tasks
-				const { data: updatedCourse } = await supabase
-					.from('courses')
-					.select('*')
-					.eq('id', courseId)
-					.single();
-
-				if (updatedCourse) {
-					const ectsPoints = updatedCourse.ects_points;
-					const startDate = new Date(updatedCourse.start_date);
-					const endDate = new Date(updatedCourse.end_date);
-					let lectureWeekdays: number[] = [];
-					
-					if (updatedCourse.lecture_weekdays) {
-						if (typeof updatedCourse.lecture_weekdays === 'string') {
-							try {
-								lectureWeekdays = JSON.parse(updatedCourse.lecture_weekdays);
-							} catch {
-								lectureWeekdays = [];
-							}
-						} else if (Array.isArray(updatedCourse.lecture_weekdays)) {
-							lectureWeekdays = updatedCourse.lecture_weekdays as number[];
-						}
-					}
-
-					// Generate new tasks
-					const { lectureHours, assignmentHours } = convertEctsToWeeklyHours(ectsPoints);
-					const tasksToInsert: TaskCreateData[] = [];
-
-					const currentDate = new Date(startDate);
-					let weekCounter = 1;
-
-					while (currentDate <= endDate) {
-						const dayOfWeek = currentDate.getDay();
-
-						if (lectureWeekdays.includes(dayOfWeek)) {
-							const deadline = new Date(currentDate);
-							deadline.setHours(23, 59, 59);
-
-							tasksToInsert.push({
-								user_id: session.user.id,
-								course_id: courseId,
-								name: `Lecture ${weekCounter}`,
-								effort_hours: Math.round(lectureHours),
-								deadline: deadline.toISOString(),
-								status: 'pending'
-							});
-
-							tasksToInsert.push({
-								user_id: session.user.id,
-								course_id: courseId,
-								name: `Assignment ${weekCounter}`,
-								effort_hours: Math.round(assignmentHours),
-								deadline: deadline.toISOString(),
-								status: 'pending'
-							});
-
-							weekCounter++;
-						}
-
-						currentDate.setDate(currentDate.getDate() + 1);
-					}
-
-					if (tasksToInsert.length > 0) {
-						const { error: tasksError } = await createTasksBatch(supabase, tasksToInsert);
-
-						if (tasksError) {
-							console.error('Error regenerating tasks:', tasksError);
-							// Don't fail - course was updated successfully
-						}
-					}
+				const { error: regenError } = await regenerateCourseTasks(supabase, userId, courseId);
+				if (regenError) {
+					console.error('Error regenerating tasks:', regenError);
+					// Don't fail - course was updated successfully
 				}
 			}
 
@@ -246,12 +163,12 @@ export const actions: Actions = {
 		}
 	},
 
-	deleteCourse: async ({ request, locals: { supabase, safeGetSession } }) => {
-		const { session } = await safeGetSession();
-
-		if (!session) {
-			return fail(401, { error: 'Not authenticated' });
+	deleteCourse: async ({ request, locals: { supabase } }) => {
+		const authResult = await getAuthenticatedUser(supabase);
+		if (authResult.error) {
+			return fail(authResult.error.status, { error: authResult.error.message });
 		}
+		const userId = authResult.userId;
 
 		const formData = await request.formData();
 		const courseId = formData.get('course_id')?.toString();
@@ -262,7 +179,7 @@ export const actions: Actions = {
 
 		try {
 			// Delete tasks first to avoid orphaned records
-			const { error: tasksError } = await deleteTasksByCourse(supabase, courseId, session.user.id);
+			const { error: tasksError } = await deleteTasksByCourse(supabase, courseId, userId);
 
 			if (tasksError) {
 				console.error('Error deleting tasks:', tasksError);
@@ -270,7 +187,7 @@ export const actions: Actions = {
 			}
 
 			// Delete the course
-			const { error: courseError } = await deleteCourse(supabase, courseId, session.user.id);
+			const { error: courseError } = await deleteCourse(supabase, courseId, userId);
 
 			if (courseError) {
 				console.error('Error deleting course:', courseError);

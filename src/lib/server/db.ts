@@ -419,3 +419,384 @@ export function parseTaskCreateForm(formData: FormData): {
 	};
 }
 
+// =============================================================================
+// Project Operations
+// =============================================================================
+
+export type ProjectStatus = 'planning' | 'active' | 'completed' | 'on-hold';
+
+export type Project = {
+	id: string;
+	name: string;
+	description: string;
+	status: ProjectStatus;
+	course_id: string | null;
+	created_at: string;
+	course?: { id: string; name: string } | null;
+};
+
+export type ProjectMember = {
+	id: string;
+	role: 'Owner' | 'Admin' | 'Member';
+	email: string;
+	name: string;
+};
+
+export type ProjectWithRole = Project & {
+	role: 'Owner' | 'Admin' | 'Member';
+};
+
+/**
+ * Get all projects for a user with their role in each project
+ */
+export async function getProjectsWithRole(
+	supabase: TypedSupabaseClient,
+	userId: string
+): Promise<{ data: ProjectWithRole[] | null; error: Error | null }> {
+	const { data: projectMembers, error } = await supabase
+		.from('project_members')
+		.select(`
+			project_id,
+			role,
+			projects (
+				id,
+				name,
+				description,
+				status,
+				created_at,
+				course:courses(id, name)
+			)
+		`)
+		.eq('user_id', userId);
+
+	if (error) {
+		return { data: null, error };
+	}
+
+	const projects = (projectMembers ?? []).map((member: any) => ({
+		...member.projects,
+		role: member.role
+	})) as ProjectWithRole[];
+
+	return { data: projects, error: null };
+}
+
+/**
+ * Create a new project and add the creator as owner
+ */
+export async function createProject(
+	supabase: TypedSupabaseClient,
+	userId: string,
+	projectData: {
+		name: string;
+		description: string;
+		course_id?: string | null;
+		status?: ProjectStatus;
+	}
+): Promise<{ data: Project | null; error: Error | null }> {
+	// Insert the project
+	const { data: newProject, error: projectError } = await supabase
+		.from('projects')
+		.insert({
+			name: projectData.name,
+			description: projectData.description,
+			course_id: projectData.course_id || null,
+			status: projectData.status || 'planning'
+		})
+		.select()
+		.single();
+
+	if (projectError || !newProject) {
+		return { data: null, error: projectError || new Error('Failed to create project') };
+	}
+
+	// Add the user as the owner
+	const { error: memberError } = await supabase
+		.from('project_members')
+		.insert({
+			project_id: newProject.id,
+			user_id: userId,
+			role: 'Owner'
+		});
+
+	if (memberError) {
+		// Clean up the project if we couldn't add the owner
+		await supabase.from('projects').delete().eq('id', newProject.id);
+		return { data: null, error: memberError };
+	}
+
+	return { data: newProject as Project, error: null };
+}
+
+/**
+ * Get a project by ID with course info
+ */
+export async function getProject(
+	supabase: TypedSupabaseClient,
+	projectId: string
+): Promise<{ data: Project | null; error: Error | null }> {
+	const { data, error } = await supabase
+		.from('projects')
+		.select(`
+			*,
+			course:courses(name)
+		`)
+		.eq('id', projectId)
+		.single();
+
+	return { data: data as Project | null, error };
+}
+
+/**
+ * Get a user's role in a project
+ */
+export async function getProjectMemberRole(
+	supabase: TypedSupabaseClient,
+	projectId: string,
+	userId: string
+): Promise<{ role: 'Owner' | 'Admin' | 'Member' | null; error: Error | null }> {
+	const { data, error } = await supabase
+		.from('project_members')
+		.select('role')
+		.eq('project_id', projectId)
+		.eq('user_id', userId)
+		.single();
+
+	if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+		return { role: null, error };
+	}
+
+	return { role: data?.role as 'Owner' | 'Admin' | 'Member' | null, error: null };
+}
+
+/**
+ * Get all members of a project with their details
+ */
+export async function getProjectMembers(
+	supabase: TypedSupabaseClient,
+	projectId: string
+): Promise<{ data: ProjectMember[] | null; error: Error | null }> {
+	const { data: members, error: membersError } = await supabase
+		.from('project_members')
+		.select('user_id, role, created_at')
+		.eq('project_id', projectId)
+		.order('role', { ascending: false })
+		.order('created_at', { ascending: true });
+
+	if (membersError || !members || members.length === 0) {
+		return { data: [], error: membersError };
+	}
+
+	const userIds = members.map(m => m.user_id);
+
+	// Get user details using RPC function
+	// Using type assertion since RPC functions may not be typed in database.types.ts
+	const { data: userDetails, error: userError } = await (supabase as any)
+		.rpc('get_user_details_by_ids', { user_ids: userIds }) as { 
+			data: Array<{ id: string; email: string; name?: string }> | null; 
+			error: Error | null 
+		};
+
+	if (userError) {
+		return { data: null, error: userError };
+	}
+
+	const membersWithDetails = members.map(member => {
+		const userDetail = userDetails?.find(u => u.id === member.user_id);
+		return {
+			id: member.user_id,
+			role: member.role as 'Owner' | 'Admin' | 'Member',
+			email: userDetail?.email || 'N/A',
+			name: userDetail?.name || userDetail?.email?.split('@')[0] || 'Unknown User'
+		};
+	});
+
+	return { data: membersWithDetails, error: null };
+}
+
+/**
+ * Add members to a project by their emails
+ */
+export async function addProjectMembers(
+	supabase: TypedSupabaseClient,
+	projectId: string,
+	members: Array<{ email: string; role: string }>
+): Promise<{ added: number; error: Error | null }> {
+	if (members.length === 0) {
+		return { added: 0, error: null };
+	}
+
+	const emails = members.map(m => m.email);
+
+	// Get user IDs from emails
+	// Using type assertion since RPC functions may not be typed in database.types.ts
+	const { data: userData, error: userError } = await (supabase as any).rpc('get_user_ids_by_emails', {
+		email_list: emails
+	}) as { 
+		data: Array<{ id: string; email: string }> | null; 
+		error: Error | null 
+	};
+
+	if (userError) {
+		return { added: 0, error: userError };
+	}
+
+	if (!userData || userData.length === 0) {
+		return { added: 0, error: new Error('No users found with these emails') };
+	}
+
+	// Create member records
+	const memberInserts = userData.map(user => {
+		const invitedMember = members.find(m => m.email === user.email);
+		return {
+			project_id: projectId,
+			user_id: user.id,
+			role: invitedMember?.role || 'Member'
+		};
+	});
+
+	const { error: insertError } = await supabase
+		.from('project_members')
+		.insert(memberInserts);
+
+	if (insertError) {
+		return { added: 0, error: insertError };
+	}
+
+	return { added: memberInserts.length, error: null };
+}
+
+// =============================================================================
+// Course Task Generation
+// =============================================================================
+
+/**
+ * Parse lecture_weekdays which can be stored as JSON string, number array, or other JSON types
+ */
+export function parseLectureWeekdays(value: unknown): number[] {
+	if (!value) return [];
+	if (Array.isArray(value)) {
+		// Ensure all elements are numbers
+		return value.filter((item): item is number => typeof item === 'number');
+	}
+	if (typeof value === 'string') {
+		try {
+			const parsed = JSON.parse(value);
+			return Array.isArray(parsed) ? parsed.filter((item): item is number => typeof item === 'number') : [];
+		} catch {
+			return [];
+		}
+	}
+	return [];
+}
+
+/**
+ * Convert ECTS points to weekly hours for lectures and assignments
+ */
+export function convertEctsToWeeklyHours(ects: number): { lectureHours: number; assignmentHours: number } {
+	const ratio = ects / 5.0;
+	return {
+		lectureHours: ratio * 2,
+		assignmentHours: ratio * 2
+	};
+}
+
+/**
+ * Generate task data for a course based on its schedule
+ * Returns an array of TaskCreateData ready for insertion
+ */
+export function generateCourseTasksData(
+	userId: string,
+	courseId: string,
+	ectsPoints: number,
+	startDate: Date,
+	endDate: Date,
+	lectureWeekdays: number[]
+): TaskCreateData[] {
+	const { lectureHours, assignmentHours } = convertEctsToWeeklyHours(ectsPoints);
+	const tasksToInsert: TaskCreateData[] = [];
+
+	const currentDate = new Date(startDate);
+	let weekCounter = 1;
+
+	while (currentDate <= endDate) {
+		const dayOfWeek = currentDate.getDay();
+
+		if (lectureWeekdays.includes(dayOfWeek)) {
+			const deadline = new Date(currentDate);
+			deadline.setHours(23, 59, 59);
+
+			tasksToInsert.push({
+				user_id: userId,
+				course_id: courseId,
+				name: `Lecture ${weekCounter}`,
+				effort_hours: Math.round(lectureHours),
+				deadline: deadline.toISOString(),
+				status: 'pending'
+			});
+
+			tasksToInsert.push({
+				user_id: userId,
+				course_id: courseId,
+				name: `Assignment ${weekCounter}`,
+				effort_hours: Math.round(assignmentHours),
+				deadline: deadline.toISOString(),
+				status: 'pending'
+			});
+
+			weekCounter++;
+		}
+
+		currentDate.setDate(currentDate.getDate() + 1);
+	}
+
+	return tasksToInsert;
+}
+
+/**
+ * Regenerate all tasks for a course after schedule changes
+ * Deletes existing tasks and creates new ones based on updated schedule
+ */
+export async function regenerateCourseTasks(
+	supabase: TypedSupabaseClient,
+	userId: string,
+	courseId: string
+): Promise<{ error: Error | null }> {
+	// Delete existing tasks for this course
+	const { error: deleteError } = await deleteTasksByCourse(supabase, courseId, userId);
+	if (deleteError) {
+		return { error: deleteError };
+	}
+
+	// Get the course data
+	const { data: course, error: courseError } = await supabase
+		.from('courses')
+		.select('*')
+		.eq('id', courseId)
+		.single();
+
+	if (courseError || !course) {
+		return { error: courseError || new Error('Course not found') };
+	}
+
+	// Generate new tasks
+	const lectureWeekdays = parseLectureWeekdays(course.lecture_weekdays);
+	const tasks = generateCourseTasksData(
+		userId,
+		courseId,
+		course.ects_points,
+		new Date(course.start_date),
+		new Date(course.end_date),
+		lectureWeekdays
+	);
+
+	if (tasks.length > 0) {
+		const { error: insertError } = await createTasksBatch(supabase, tasks);
+		if (insertError) {
+			return { error: insertError };
+		}
+	}
+
+	return { error: null };
+}
+

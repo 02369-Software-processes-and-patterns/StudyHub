@@ -4,7 +4,6 @@
     import EditCourseModal from '$lib/components/modal/EditCourseModal.svelte';
     import CourseList from '$lib/components/list/CourseList.svelte';
     import type { PageData } from './$types';
-    import { onMount } from 'svelte';
 
     export let data: PageData;
 
@@ -18,17 +17,6 @@
         end_date?: string | null;
         lecture_weekdays?: number[] | string | null;
     } | null = null;
-
-    let activeSemester = 'Fall';
-
-    function getSemester(date: Date) {
-        const m = date.getMonth();
-        return (m >= 8 || m <= 0) ? 'Fall' : 'Winter';
-    }
-
-    onMount(() => {
-        activeSemester = getSemester(new Date());
-    });
 
     async function handleCourseAdded() {
         await invalidateAll();

@@ -1,83 +1,46 @@
 import { fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
+import {
+    getAuthenticatedUser,
+    getProject,
+    getProjectMemberRole,
+    getProjectMembers,
+    addProjectMembers
+} from '$lib/server/db';
 
-// 1. Henter data til siden (erstatter onMount)
-export const load: PageServerLoad = async ({ params, locals: { supabase, safeGetSession } }) => {
-    const { session } = await safeGetSession();
-    // Hvis brugeren ikke er logget ind, returner vi null, så UI kan håndtere det
-    if (!session) return { project: null, userRole: null };
+export const load: PageServerLoad = async ({ params, locals: { supabase } }) => {
+    const authResult = await getAuthenticatedUser(supabase);
+    if (authResult.error) {
+        return { project: null, userRole: null, members: [] };
+    }
 
     const { uuid } = params;
 
-    // Hent selve projektet
-    const { data: project, error: projError } = await supabase
-        .from('projects')
-        .select(`
-            *,
-            course:courses(name)
-        `)
-        .eq('id', uuid)
-        .single();
+    // Fetch project, user role, and members in parallel
+    const [projectResult, roleResult, membersResult] = await Promise.all([
+        getProject(supabase, uuid),
+        getProjectMemberRole(supabase, uuid, authResult.userId),
+        getProjectMembers(supabase, uuid)
+    ]);
 
-    if (projError) {
-        console.error('Error loading project:', projError);
-        return { project: null, userRole: null };
-    }
-
-    // Hent brugerens rolle i dette projekt (Owner, Admin, Member)
-    const { data: memberData } = await supabase
-        .from('project_members')
-        .select('role')
-        .eq('project_id', uuid)
-        .eq('user_id', session.user.id)
-        .single();
-
-    // Hent alle projektmedlemmer med user information
-    const { data: members, error: membersError } = await supabase
-        .from('project_members')
-        .select('user_id, role, created_at')
-        .eq('project_id', uuid)
-        .order('role', { ascending: false }) // Owners først
-        .order('created_at', { ascending: true });
-
-    let membersWithDetails: Array<{
-        id: string;
-        role: 'Owner' | 'Admin' | 'Member';
-        email: string;
-        name: string;
-    }> = [];
-    if (!membersError && members && members.length > 0) {
-        const userIds = members.map(m => m.user_id);
-        
-        // Brug RPC funktion til at hente brugerdetaljer
-        const { data: userDetails, error: userError } = await supabase
-            .rpc('get_user_details_by_ids', { user_ids: userIds });
-
-        if (!userError && userDetails) {
-            membersWithDetails = members.map(member => {
-                const userDetail = userDetails.find((u: any) => u.id === member.user_id);
-                return {
-                    id: member.user_id,
-                    role: member.role as 'Owner' | 'Admin' | 'Member',
-                    email: userDetail?.email || 'N/A',
-                    name: userDetail?.name || userDetail?.email?.split('@')[0] || 'Unknown User'
-                };
-            });
-        }
+    if (projectResult.error) {
+        console.error('Error loading project:', projectResult.error);
+        return { project: null, userRole: null, members: [] };
     }
 
     return {
-        project,
-        userRole: memberData?.role ?? null,
-        members: membersWithDetails
+        project: projectResult.data,
+        userRole: roleResult.role,
+        members: membersResult.data ?? []
     };
 };
 
-// 2. Håndterer formular-handlinger (actions)
 export const actions: Actions = {
-    inviteMembers: async ({ request, params, locals: { supabase, safeGetSession } }) => {
-        const { session } = await safeGetSession();
-        if (!session) return fail(401, { error: 'Not authenticated' });
+    inviteMembers: async ({ request, params, locals: { supabase } }) => {
+        const authResult = await getAuthenticatedUser(supabase);
+        if (authResult.error) {
+            return fail(authResult.error.status, { error: authResult.error.message });
+        }
 
         const projectId = params.uuid;
         const formData = await request.formData();
@@ -87,61 +50,32 @@ export const actions: Actions = {
             return fail(400, { error: 'No members selected' });
         }
 
-        // Tjek om afsenderen faktisk er Owner eller Admin
-        const { data: currentMember } = await supabase
-            .from('project_members')
-            .select('role')
-            .eq('project_id', projectId)
-            .eq('user_id', session.user.id)
-            .single();
-
-        if (!currentMember || !['Owner', 'Admin'].includes(currentMember.role)) {
+        // Check if the user is Owner or Admin
+        const { role } = await getProjectMemberRole(supabase, projectId, authResult.userId);
+        if (!role || !['Owner', 'Admin'].includes(role)) {
             return fail(403, { error: 'Only Owners and Admins can invite members.' });
         }
 
         let invitedMembers: Array<{ email: string; role: string }> = [];
         try {
             invitedMembers = JSON.parse(invitedMembersStr);
-        } catch (e) {
+        } catch {
             return fail(400, { error: 'Invalid data format' });
         }
 
-        // Find User IDs baseret på emails
-        const emails = invitedMembers.map(m => m.email);
-        const { data: userData, error: userError } = await supabase.rpc('get_user_ids_by_emails', {
-            email_list: emails
-        });
+        const { added, error } = await addProjectMembers(supabase, projectId, invitedMembers);
 
-        if (userError) {
-            console.error('RPC Error:', userError);
-            return fail(500, { error: 'Error searching for users' });
-        }
-
-        if (!userData || userData.length === 0) {
-            return fail(404, { error: 'No users found with these emails' });
-        }
-
-        // Klargør data til indsættelse
-        const memberInserts = userData.map((user: any) => {
-            const invitedMember = invitedMembers.find(m => m.email === user.email);
-            return {
-                project_id: projectId,
-                user_id: user.id,
-                role: invitedMember?.role || 'Member'
-            };
-        });
-
-        // Indsæt i databasen
-        const { error: insertError } = await supabase
-            .from('project_members')
-            .insert(memberInserts);
-
-        if (insertError) {
-            if (insertError.code === '23505') { // Unik nøgle fejl (allerede medlem)
+        if (error) {
+            // Handle unique constraint violation (user already a member)
+            if ((error as any).code === '23505') {
                 return fail(400, { error: 'One or more users are already in this project.' });
             }
-            console.error('Insert Error:', insertError);
-            return fail(500, { error: 'Failed to invite members.' });
+            console.error('Error inviting members:', error);
+            return fail(500, { error: error.message || 'Failed to invite members.' });
+        }
+
+        if (added === 0) {
+            return fail(404, { error: 'No users found with these emails' });
         }
 
         return { success: true };
