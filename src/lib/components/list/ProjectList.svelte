@@ -190,7 +190,6 @@
 						class="hidden px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3 lg:table-cell"
 						>Created</th
 					>
-					<th class="px-2 py-2"></th>
 				</tr>
 			</thead>
 
@@ -243,20 +242,11 @@
 							>
 								{fmtDate(project.created_at)}
 							</td>
-
-							<td class="px-2 py-2 text-right md:px-6">
-								<button
-									class="rounded-md bg-indigo-600 px-2 py-1 text-xs font-medium text-white hover:bg-indigo-700 sm:text-sm"
-									on:click|stopPropagation={() => handleRowClick(project.id)}
-								>
-									Open
-								</button>
-							</td>
 						</tr>
 					{/each}
 				{:else}
 					<tr>
-						<td colspan="6" class="px-4 py-8 text-center text-sm text-gray-500">
+						<td colspan="5" class="px-4 py-8 text-center text-sm text-gray-500">
 							No projects found.
 							{#if nameQuery || statusFilter !== 'all' || courseFilter !== 'all'}
 								Try adjusting your filters.
