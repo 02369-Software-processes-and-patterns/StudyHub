@@ -5,34 +5,45 @@ import {
 	getProject,
 	getProjectMemberRole,
 	getProjectMembers,
+	getProjectTasks,
 	addProjectMembers,
-	removeProjectMember
+	removeProjectMember,
+	createProjectTask,
+	updateProjectTask,
+	updateProjectTaskAssignee,
+	deleteProjectTask
 } from '$lib/server/db';
 
 export const load: PageServerLoad = async ({ params, locals: { supabase } }) => {
 	const authResult = await getAuthenticatedUser(supabase);
 	if (authResult.error) {
-		return { project: null, userRole: null, members: [] };
+		return { project: null, userRole: null, members: [], tasks: [] };
 	}
 
 	const { uuid } = params;
 
-	// Fetch project, user role, and members in parallel
-	const [projectResult, roleResult, membersResult] = await Promise.all([
+	// Fetch project, user role, members, and tasks in parallel
+	const [projectResult, roleResult, membersResult, tasksResult] = await Promise.all([
 		getProject(supabase, uuid),
 		getProjectMemberRole(supabase, uuid, authResult.userId),
-		getProjectMembers(supabase, uuid)
+		getProjectMembers(supabase, uuid),
+		getProjectTasks(supabase, uuid)
 	]);
 
 	if (projectResult.error) {
 		console.error('Error loading project:', projectResult.error);
-		return { project: null, userRole: null, members: [] };
+		return { project: null, userRole: null, members: [], tasks: [] };
+	}
+
+	if (tasksResult.error) {
+		console.error('Error loading project tasks:', tasksResult.error);
 	}
 
 	return {
 		project: projectResult.data,
 		userRole: roleResult.role,
-		members: membersResult.data ?? []
+		members: membersResult.data ?? [],
+		tasks: tasksResult.data ?? []
 	};
 };
 
@@ -110,5 +121,194 @@ export const actions: Actions = {
 		}
 
 		throw redirect(303, '/project');
+	},
+
+	/** Create a new task for this project */
+	createTask: async ({ request, params, locals: { supabase } }) => {
+		const authResult = await getAuthenticatedUser(supabase);
+		if (authResult.error) {
+			return fail(authResult.error.status, { error: authResult.error.message });
+		}
+
+		const projectId = params.uuid;
+
+		// Verify user is a project member
+		const { role } = await getProjectMemberRole(supabase, projectId, authResult.userId);
+		if (!role) {
+			return fail(403, { error: 'You are not a member of this project.' });
+		}
+
+		const formData = await request.formData();
+		const name = formData.get('name') as string;
+		const effortHoursStr = formData.get('effort_hours') as string;
+		const deadline = formData.get('deadline') as string;
+		const assignedUserId = formData.get('user_id') as string | null;
+
+		// Validation
+		if (!name?.trim()) {
+			return fail(400, { error: 'Task name is required.' });
+		}
+		if (!deadline) {
+			return fail(400, { error: 'Deadline is required.' });
+		}
+
+		const effortHours = parseFloat(effortHoursStr);
+		if (isNaN(effortHours) || effortHours <= 0) {
+			return fail(400, { error: 'Effort hours must be a positive number.' });
+		}
+
+		// If assigning to someone, verify they are a project member
+		if (assignedUserId) {
+			const { role: assigneeRole } = await getProjectMemberRole(
+				supabase,
+				projectId,
+				assignedUserId
+			);
+			if (!assigneeRole) {
+				return fail(400, { error: 'Assigned user is not a member of this project.' });
+			}
+		}
+
+		const { error } = await createProjectTask(supabase, {
+			project_id: projectId,
+			name: name.trim(),
+			effort_hours: effortHours,
+			deadline,
+			user_id: assignedUserId || null
+		});
+
+		if (error) {
+			console.error('Error creating project task:', error);
+			console.error('Task data:', { project_id: projectId, name: name.trim(), effort_hours: effortHours, deadline, user_id: assignedUserId });
+			return fail(500, { error: `Failed to create task: ${error.message}` });
+		}
+
+		return { success: true };
+	},
+
+	/** Update a project task */
+	updateTask: async ({ request, params, locals: { supabase } }) => {
+		const authResult = await getAuthenticatedUser(supabase);
+		if (authResult.error) {
+			return fail(authResult.error.status, { error: authResult.error.message });
+		}
+
+		const projectId = params.uuid;
+
+		// Verify user is a project member
+		const { role } = await getProjectMemberRole(supabase, projectId, authResult.userId);
+		if (!role) {
+			return fail(403, { error: 'You are not a member of this project.' });
+		}
+
+		const formData = await request.formData();
+		const taskId = formData.get('task_id') as string;
+
+		if (!taskId) {
+			return fail(400, { error: 'Task ID is required.' });
+		}
+
+		// Build updates object from form data
+		const updates: Record<string, unknown> = {};
+
+		const name = formData.get('name');
+		if (name !== null) updates.name = (name as string).trim();
+
+		const status = formData.get('status');
+		if (status !== null) updates.status = status as string;
+
+		const effortHoursStr = formData.get('effort_hours');
+		if (effortHoursStr !== null) {
+			const effortHours = parseFloat(effortHoursStr as string);
+			if (!isNaN(effortHours) && effortHours > 0) {
+				updates.effort_hours = effortHours;
+			}
+		}
+
+		const deadline = formData.get('deadline');
+		if (deadline !== null) updates.deadline = deadline as string;
+
+		if (Object.keys(updates).length === 0) {
+			return fail(400, { error: 'No updates provided.' });
+		}
+
+		const { error } = await updateProjectTask(supabase, taskId, projectId, updates);
+
+		if (error) {
+			console.error('Error updating project task:', error);
+			return fail(500, { error: 'Failed to update task.' });
+		}
+
+		return { success: true };
+	},
+
+	/** Assign a task to a project member */
+	assignTask: async ({ request, params, locals: { supabase } }) => {
+		const authResult = await getAuthenticatedUser(supabase);
+		if (authResult.error) {
+			return fail(authResult.error.status, { error: authResult.error.message });
+		}
+
+		const projectId = params.uuid;
+
+		// Verify user is a project member
+		const { role } = await getProjectMemberRole(supabase, projectId, authResult.userId);
+		if (!role) {
+			return fail(403, { error: 'You are not a member of this project.' });
+		}
+
+		const formData = await request.formData();
+		const taskId = formData.get('task_id') as string;
+		const assigneeId = formData.get('user_id') as string | null;
+
+		if (!taskId) {
+			return fail(400, { error: 'Task ID is required.' });
+		}
+
+		const { error } = await updateProjectTaskAssignee(
+			supabase,
+			taskId,
+			projectId,
+			assigneeId || null
+		);
+
+		if (error) {
+			console.error('Error assigning task:', error);
+			return fail(500, { error: error.message || 'Failed to assign task.' });
+		}
+
+		return { success: true };
+	},
+
+	/** Delete a project task */
+	deleteTask: async ({ request, params, locals: { supabase } }) => {
+		const authResult = await getAuthenticatedUser(supabase);
+		if (authResult.error) {
+			return fail(authResult.error.status, { error: authResult.error.message });
+		}
+
+		const projectId = params.uuid;
+
+		// Verify user is a project member (optionally restrict to Owner/Admin)
+		const { role } = await getProjectMemberRole(supabase, projectId, authResult.userId);
+		if (!role) {
+			return fail(403, { error: 'You are not a member of this project.' });
+		}
+
+		const formData = await request.formData();
+		const taskId = formData.get('task_id') as string;
+
+		if (!taskId) {
+			return fail(400, { error: 'Task ID is required.' });
+		}
+
+		const { error } = await deleteProjectTask(supabase, taskId, projectId);
+
+		if (error) {
+			console.error('Error deleting project task:', error);
+			return fail(500, { error: 'Failed to delete task.' });
+		}
+
+		return { success: true };
 	}
 };

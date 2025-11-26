@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import InviteMemberModal from '$lib/components/modal/InviteMemberModal.svelte';
+	import AddProjectTaskModal from '$lib/components/modal/AddProjectTaskModal.svelte';
 	import ProjectMembers from '$lib/components/project/ProjectMembers.svelte';
 	import ProjectTaskList from '$lib/components/list/ProjectTaskList.svelte';
 	import type { PageData } from './$types';
@@ -12,11 +13,30 @@
 	$: project = data.project;
 	$: userRole = data.userRole;
 	$: members = data.members || [];
+	$: serverTasks = data.tasks || [];
+
+	// Transform server tasks to match ProjectTaskList format
+	$: tasks = serverTasks.map((task) => ({
+		id: task.id,
+		name: task.name,
+		status: task.status,
+		deadline: task.deadline,
+		effort_hours: task.effort_hours,
+		assignee: task.assignee
+			? {
+					id: task.assignee.id,
+					name: task.assignee.name,
+					email: task.assignee.email,
+					role: 'Member' as const
+				}
+			: null
+	}));
 
 	// Checks if the user has permission to invite (Owner or Admin)
 	$: canInvite = userRole === 'Owner' || userRole === 'Admin';
 
 	let showInviteModal = false;
+	let showAddTaskModal = false;
 
 	// Reload data when an invitation is successfully sent
 	function handleInvited() {
@@ -197,52 +217,10 @@
 		<div class="grid gap-8 md:grid-cols-2">
 			<div class="min-h-[400px]">
 				<ProjectTaskList 
-					tasks={[
-						{
-							id: '1',
-							name: 'Design database schema',
-							status: 'completed',
-							deadline: '2025-11-20T23:59:00',
-							effort_hours: 4,
-							assignee: members[0] ?? null
-						},
-						{
-							id: '2',
-							name: 'Implement user authentication',
-							status: 'working',
-							deadline: '2025-11-28T23:59:00',
-							effort_hours: 8,
-							assignee: members[1] ?? null
-						},
-						{
-							id: '3',
-							name: 'Create API endpoints',
-							status: 'todo',
-							deadline: '2025-12-01T23:59:00',
-							effort_hours: 6,
-							assignee: members[2] ?? null
-						},
-						{
-							id: '4',
-							name: 'Write unit tests',
-							status: 'pending',
-							deadline: '2025-12-05T23:59:00',
-							effort_hours: 5,
-							assignee: null
-						},
-						{
-							id: '5',
-							name: 'Setup CI/CD pipeline',
-							status: 'on-hold',
-							deadline: '2025-11-25T23:59:00',
-							effort_hours: 3,
-							assignee: members[0] ?? null
-						}
-					]}
+					{tasks}
 					{members}
 					onAddTask={() => {
-						// TODO: Implement add task modal
-						console.log('Add task clicked');
+						showAddTaskModal = true;
 					}}
 				/>
 			</div>
@@ -273,3 +251,4 @@
 {/if}
 
 <InviteMemberModal bind:isOpen={showInviteModal} on:invited={handleInvited} />
+<AddProjectTaskModal bind:isOpen={showAddTaskModal} {members} />

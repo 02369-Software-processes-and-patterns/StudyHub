@@ -115,10 +115,24 @@
 		return gradients[Math.abs(hash) % gradients.length];
 	}
 
-	// Handler for assignee change (UI only - logs to console)
-	function handleAssigneeChange(taskId: string | number, memberId: string) {
-		console.log('Assignee changed:', { taskId, memberId: memberId || 'unassigned' });
-		// TODO: Backend integration will handle the actual update
+	// Handler for assignee change
+	async function handleAssigneeChange(taskId: string | number, memberId: string) {
+		const formData = new FormData();
+		formData.append('task_id', String(taskId));
+		formData.append('user_id', memberId || '');
+
+		try {
+			const response = await fetch('?/assignTask', {
+				method: 'POST',
+				body: formData
+			});
+
+			if (!response.ok) {
+				console.error('Failed to assign task');
+			}
+		} catch (error) {
+			console.error('Error assigning task:', error);
+		}
 	}
 </script>
 
