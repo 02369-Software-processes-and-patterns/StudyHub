@@ -93,13 +93,13 @@
 
 		<label class="block">
 			<span class="font-medium text-gray-700">ECTS Points *</span>
-			<select
-				name="ects_points"
-				bind:value={ects_points}
-				required
-				disabled={loading}
-				class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 disabled:cursor-not-allowed disabled:bg-gray-100"
-			>
+		<select
+			name="ects_points"
+			bind:value={ects_points}
+			required
+			disabled={loading}
+			class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 pr-10 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 disabled:cursor-not-allowed disabled:bg-gray-100"
+		>
 				<option value="">Select ECTS</option>
 				{#each ectsOptions as option (option.value)}
 					<option value={option.value}>

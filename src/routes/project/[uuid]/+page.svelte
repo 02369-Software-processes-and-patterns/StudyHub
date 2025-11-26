@@ -1,26 +1,94 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import InviteMemberModal from '$lib/components/modal/InviteMemberModal.svelte';
+	import TransferOwnershipModal from '$lib/components/modal/TransferOwnershipModal.svelte';
+	import AddProjectTaskModal from '$lib/components/modal/AddProjectTaskModal.svelte';
+	import EditProjectTaskModal from '$lib/components/modal/EditProjectTaskModal.svelte';
 	import ProjectMembers from '$lib/components/project/ProjectMembers.svelte';
+	import EditProjectModal from '$lib/components/modal/EditProjectModal.svelte';
+	import ProjectTaskList from '$lib/components/list/ProjectTaskList.svelte';
 	import type { PageData } from './$types';
+
+	type TaskStatus = 'pending' | 'todo' | 'on-hold' | 'working' | 'completed';
+	type Member = {
+		id: string;
+		name: string;
+		email: string;
+		role: 'Owner' | 'Admin' | 'Member';
+	};
+	type Task = {
+		id: string | number;
+		name: string;
+		status: TaskStatus;
+		deadline?: string | null;
+		effort_hours?: number | null;
+		assignee?: Member | null;
+	};
 
 	// data comes from the load function in +page.ts
 	export let data: PageData;
 
+	let project: PageData['project'] = data.project;
+    let userRole: PageData['userRole'] = data.userRole;
+    let members: NonNullable<PageData['members']> = data.members || [];
+	
 	// reactive variables updated when data changes
 	$: project = data.project;
 	$: userRole = data.userRole;
 	$: members = data.members || [];
+	$: serverTasks = data.tasks || [];
+
+	// Transform server tasks to match ProjectTaskList format
+	$: tasks = serverTasks.map((task) => ({
+		id: task.id,
+		name: task.name,
+		status: task.status as TaskStatus,
+		deadline: task.deadline,
+		effort_hours: task.effort_hours,
+		assignee: task.assignee
+			? {
+					id: task.assignee.id,
+					name: task.assignee.name,
+					email: task.assignee.email,
+					role: 'Member' as const
+				}
+			: null
+	}));
 
 	// Checks if the user has permission to invite (Owner or Admin)
 	$: canInvite = userRole === 'Owner' || userRole === 'Admin';
+	$: isOwner = userRole === 'Owner';
+
+	// Checks if the user has permission to edit the project (Owner or Admin)
+	$: canEdit = userRole === 'Owner' || userRole === 'Admin';
 
 	let showInviteModal = false;
+	let showTransferModal = false;
+	let showEditProjectModal = false;
+	let showAddTaskModal = false;
+	let showEditTaskModal = false;
+	let taskToEdit: Task | null = null;
 
 	// Reload data when an invitation is successfully sent
 	function handleInvited() {
 		invalidateAll();
 		showInviteModal = false;
+	}
+
+	async function handleTransferred() {
+		await invalidateAll();
+		showTransferModal = false;
+		alert('Ownership has been transferred successfully. You are now an Admin');
+  }
+    
+	function handleProjectUpdated() {
+        invalidateAll();
+		showEditProjectModal = false;
+    }
+
+	function openEditTask(task: Task) {
+		taskToEdit = task;
+		showEditTaskModal = true;
 	}
 </script>
 
@@ -139,33 +207,24 @@
 					</div>
 
 					<div class="flex items-center gap-2">
-						{#if userRole !== 'Owner'}
-							<form
-								method="POST"
-								action="?/leaveProject"
-								on:submit|preventDefault={(e) => {
-									if (confirm('Are you sure you want to leave this project?')) {
-										e.currentTarget.submit();
-									}
-								}}
+						{#if isOwner}
+							<button
+								type="button"
+								on:click={() => (showTransferModal = true)}
+								class="inline-flex items-center gap-2 rounded-lg border border-orange-200 bg-white px-4 py-2 text-sm font-medium text-orange-600 shadow-sm transition-colors hover:bg-orange-50"
+								title="Transfer Ownership"
 							>
-								<button
-									type="submit"
-									class="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 shadow-sm transition-colors hover:bg-red-50"
-									title="Leave Project"
-								>
-									<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-										/>
-									</svg>
-									Leave
-								</button>
-							</form>
-						{:else}
+								<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+									/>
+								</svg>
+								Transfer Ownership
+							</button>
+
 							<form
 								method="POST"
 								action="?/deleteProject"
@@ -195,7 +254,45 @@
 									Delete Project
 								</button>
 							</form>
+						{:else}
+							<form
+								method="POST"
+								action="?/leaveProject"
+								on:submit|preventDefault={(e) => {
+									if (confirm('Are you sure you want to leave this project?')) {
+										e.currentTarget.submit();
+									}
+								}}
+							>
+								<button
+									type="submit"
+									class="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 shadow-sm transition-colors hover:bg-red-50"
+									title="Leave Project"
+								>
+									<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+										/>
+									</svg>
+									Leave
+								</button>
+							</form>
 						{/if}
+                        {#if canEdit}
+                            <button
+                                type="button"
+                                on:click={() => (showEditProjectModal = true)}
+                                class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+                            >
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M4 13.5V19h5.5l9.621-9.621a1.5 1.5 0 00-2.121-2.121L4 13.5z" />
+                                </svg>
+                                Edit Project
+                            </button>
+                        {/if}
 
 						{#if canInvite}
 							<button
@@ -219,56 +316,59 @@
 			</div>
 
 			<div class="p-6">
-				<ProjectMembers {members} />
+				<ProjectMembers {members} currentUserId={data.userId || ''} {userRole} />
 			</div>
 		</div>
 
-		<div class="grid gap-8 md:grid-cols-2">
-			<div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg">
-				<div class="mb-4 flex items-center gap-3">
-					<div class="rounded-lg bg-purple-100 p-2">
-						<svg
-							class="h-5 w-5 text-purple-600"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-							/>
-						</svg>
-					</div>
-					<h2 class="text-lg font-bold text-gray-900">Project Tasks</h2>
-				</div>
-				<p class="text-sm text-gray-500">Task management coming soon...</p>
-			</div>
+		<!-- Task List - Full Width -->
+		<div class="mb-8">
+			<ProjectTaskList 
+				{tasks}
+				{members}
+				onAddTask={() => {
+					showAddTaskModal = true;
+				}}
+				openEdit={openEditTask}
+			/>
+		</div>
 
-			<div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg">
-				<div class="mb-4 flex items-center gap-3">
-					<div class="rounded-lg bg-blue-100 p-2">
-						<svg
-							class="h-5 w-5 text-blue-600"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M13 10V3L4 14h7v7l9-11h-7z"
-							/>
-						</svg>
-					</div>
-					<h2 class="text-lg font-bold text-gray-900">Recent Activity</h2>
+		<!-- Recent Activity -->
+		<div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg">
+			<div class="mb-4 flex items-center gap-3">
+				<div class="rounded-lg bg-blue-100 p-2">
+					<svg
+						class="h-5 w-5 text-blue-600"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M13 10V3L4 14h7v7l9-11h-7z"
+						/>
+					</svg>
 				</div>
-				<p class="text-sm text-gray-500">Activity feed coming soon...</p>
+				<h2 class="text-lg font-bold text-gray-900">Recent Activity</h2>
 			</div>
+			<p class="text-sm text-gray-500">Activity feed coming soon...</p>
 		</div>
 	</div>
 {/if}
 
 <InviteMemberModal bind:isOpen={showInviteModal} on:invited={handleInvited} />
+<TransferOwnershipModal
+    bind:isOpen={showTransferModal}
+    {members}
+    currentUserId={data.userId || ''}
+    on:transferred={handleTransferred} />
+                        
+<EditProjectModal bind:isOpen={showEditProjectModal} {project} on:projectUpdated={handleProjectUpdated} />
+<AddProjectTaskModal bind:isOpen={showAddTaskModal} {members} />
+<EditProjectTaskModal 
+	bind:isOpen={showEditTaskModal} 
+	task={taskToEdit} 
+	{members} 
+	on:taskUpdated={() => invalidateAll()} 
+/>
