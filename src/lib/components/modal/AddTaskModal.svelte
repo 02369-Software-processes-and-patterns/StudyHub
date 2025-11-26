@@ -88,12 +88,12 @@
 
 		<label class="block">
 			<span class="font-medium text-gray-700">Course</span>
-			<select
-				id="course_id"
-				name="course_id"
-				bind:value={formData.course_id}
-				class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-			>
+		<select
+			id="course_id"
+			name="course_id"
+			bind:value={formData.course_id}
+			class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 pr-10 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
+		>
 				<option value="">None (optional)</option>
 				{#each courses as course (course.id)}
 					<option value={course.id}>{course.name}</option>

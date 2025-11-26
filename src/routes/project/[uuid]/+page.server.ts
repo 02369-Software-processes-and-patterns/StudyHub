@@ -205,6 +205,10 @@ export const actions: Actions = {
 			return fail(403, { error: 'You are not a member of this project.' });
 		}
 
+		// Get the project to retrieve its linked course_id
+		const { data: project } = await getProject(supabase, projectId);
+		const courseId = project?.course_id ?? null;
+
 		const formData = await request.formData();
 		const name = formData.get('name') as string;
 		const effortHoursStr = formData.get('effort_hours') as string;
@@ -241,7 +245,8 @@ export const actions: Actions = {
 			name: name.trim(),
 			effort_hours: effortHours,
 			deadline,
-			user_id: assignedUserId || null
+			user_id: assignedUserId || null,
+			course_id: courseId
 		});
 
 		if (error) {
