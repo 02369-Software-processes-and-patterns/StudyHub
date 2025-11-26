@@ -113,7 +113,7 @@
                 bind:value={formData.description}
                 disabled={loading}
                 class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 disabled:cursor-not-allowed disabled:bg-gray-100"
-            />
+            ></textarea>
         </label>
 
         <!-- Statusvælger -->
