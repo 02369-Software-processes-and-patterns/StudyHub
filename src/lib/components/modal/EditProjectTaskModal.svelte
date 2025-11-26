@@ -3,23 +3,30 @@
 	import { enhance } from '$app/forms';
 	import Modal from './Modal.svelte';
 
+	type Member = {
+		id: string;
+		name: string;
+		email: string;
+		role: 'Owner' | 'Admin' | 'Member';
+	};
+
 	export let isOpen = false;
 	export let task: {
 		id: string | number;
 		name: string;
 		effort_hours?: number | null;
-		course_id?: string | null;
 		deadline?: string | null;
+		assignee?: Member | null;
 	} | null = null;
-	export let courses: Array<{ id: string; name: string }> = [];
+	export let members: Member[] = [];
 
 	const dispatch = createEventDispatcher();
 
 	let formData = {
 		name: '',
-		effort_hours: 0,
-		course_id: '',
-		deadline: ''
+		effort_hours: 1,
+		deadline: '',
+		user_id: ''
 	};
 
 	let errorMessage = '';
@@ -28,9 +35,9 @@
 	$: if (isOpen && task) {
 		formData = {
 			name: task.name ?? '',
-			effort_hours: task.effort_hours ?? 0,
-			course_id: task.course_id ?? '',
-			deadline: task.deadline ? task.deadline.substring(0, 16) : '' // for datetime-local input
+			effort_hours: task.effort_hours ?? 1,
+			deadline: task.deadline ? task.deadline.substring(0, 16) : '',
+			user_id: task.assignee?.id ?? ''
 		};
 	}
 
@@ -75,7 +82,7 @@
 				type="text"
 				bind:value={formData.name}
 				required
-				class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
+				class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200"
 				placeholder="Enter task name"
 			/>
 		</label>
@@ -86,27 +93,12 @@
 				id="effort_hours"
 				name="effort_hours"
 				type="number"
-				min="0"
+				min="0.5"
 				step="0.5"
 				bind:value={formData.effort_hours}
 				required
-				class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
+				class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200"
 			/>
-		</label>
-
-		<label class="block">
-			<span class="font-medium text-gray-700">Course</span>
-		<select
-			id="course_id"
-			name="course_id"
-			bind:value={formData.course_id}
-			class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 pr-10 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-		>
-				<option value="">None (optional)</option>
-				{#each courses as course (course.id)}
-					<option value={course.id}>{course.name}</option>
-				{/each}
-			</select>
 		</label>
 
 		<label class="block">
@@ -117,8 +109,24 @@
 				type="datetime-local"
 				bind:value={formData.deadline}
 				required
-				class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
+				class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200"
 			/>
+		</label>
+
+		<label class="block">
+			<span class="font-medium text-gray-700">Assign To</span>
+		<select
+			id="user_id"
+			name="user_id"
+			bind:value={formData.user_id}
+			class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 pr-10 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200"
+		>
+				<option value="">Unassigned</option>
+				{#each members as member (member.id)}
+					<option value={member.id}>{member.name}</option>
+				{/each}
+			</select>
+			<p class="mt-1 text-xs text-gray-500">Optional: Assign this task to a team member</p>
 		</label>
 
 		<div class="flex gap-3 border-t border-gray-200 pt-4">
@@ -131,10 +139,11 @@
 			</button>
 			<button
 				type="submit"
-				class="flex-1 rounded-md bg-blue-600 px-4 py-2 font-medium text-white transition hover:bg-blue-700"
+				class="flex-1 rounded-md bg-purple-600 px-4 py-2 font-medium text-white transition hover:bg-purple-700"
 			>
 				Save Changes
 			</button>
 		</div>
 	</form>
 </Modal>
+

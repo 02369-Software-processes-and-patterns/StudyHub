@@ -220,7 +220,7 @@
 								<div class="flex items-center gap-2">
 									<select
 										bind:value={member.role}
-										class="rounded border-gray-300 px-2 py-1 text-xs"
+										class="rounded border-gray-300 px-2 py-1 pr-8 text-xs"
 									>
 										{#each memberRoles as role (role.value)}
 											<option value={role.value}>{role.label}</option>

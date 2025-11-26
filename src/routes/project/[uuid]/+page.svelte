@@ -1,9 +1,28 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import InviteMemberModal from '$lib/components/modal/InviteMemberModal.svelte';
+	import AddProjectTaskModal from '$lib/components/modal/AddProjectTaskModal.svelte';
+	import EditProjectTaskModal from '$lib/components/modal/EditProjectTaskModal.svelte';
 	import ProjectMembers from '$lib/components/project/ProjectMembers.svelte';
 	import EditProjectModal from '$lib/components/modal/EditProjectModal.svelte';
+	import ProjectTaskList from '$lib/components/list/ProjectTaskList.svelte';
 	import type { PageData } from './$types';
+
+	type TaskStatus = 'pending' | 'todo' | 'on-hold' | 'working' | 'completed';
+	type Member = {
+		id: string;
+		name: string;
+		email: string;
+		role: 'Owner' | 'Admin' | 'Member';
+	};
+	type Task = {
+		id: string | number;
+		name: string;
+		status: TaskStatus;
+		deadline?: string | null;
+		effort_hours?: number | null;
+		assignee?: Member | null;
+	};
 
 	// data comes from the load function in +page.ts
 	export let data: PageData;
@@ -16,6 +35,24 @@
 	$: project = data.project;
 	$: userRole = data.userRole;
 	$: members = data.members || [];
+	$: serverTasks = data.tasks || [];
+
+	// Transform server tasks to match ProjectTaskList format
+	$: tasks = serverTasks.map((task) => ({
+		id: task.id,
+		name: task.name,
+		status: task.status as TaskStatus,
+		deadline: task.deadline,
+		effort_hours: task.effort_hours,
+		assignee: task.assignee
+			? {
+					id: task.assignee.id,
+					name: task.assignee.name,
+					email: task.assignee.email,
+					role: 'Member' as const
+				}
+			: null
+	}));
 
 	// Checks if the user has permission to invite (Owner or Admin)
 	$: canInvite = userRole === 'Owner' || userRole === 'Admin';
@@ -25,6 +62,9 @@
 
 	let showInviteModal = false;
 	let showEditProjectModal = false;
+	let showAddTaskModal = false;
+	let showEditTaskModal = false;
+	let taskToEdit: Task | null = null;
 
 	// Reload data when an invitation is successfully sent
 	function handleInvited() {
@@ -35,6 +75,11 @@
         invalidateAll();
 		showEditProjectModal = false;
     }
+
+	function openEditTask(task: Task) {
+		taskToEdit = task;
+		showEditTaskModal = true;
+	}
 </script>
 
 {#if !project}
@@ -248,53 +293,49 @@
 			</div>
 		</div>
 
-		<div class="grid gap-8 md:grid-cols-2">
-			<div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg">
-				<div class="mb-4 flex items-center gap-3">
-					<div class="rounded-lg bg-purple-100 p-2">
-						<svg
-							class="h-5 w-5 text-purple-600"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-							/>
-						</svg>
-					</div>
-					<h2 class="text-lg font-bold text-gray-900">Project Tasks</h2>
-				</div>
-				<p class="text-sm text-gray-500">Task management coming soon...</p>
-			</div>
+		<!-- Task List - Full Width -->
+		<div class="mb-8">
+			<ProjectTaskList 
+				{tasks}
+				{members}
+				onAddTask={() => {
+					showAddTaskModal = true;
+				}}
+				openEdit={openEditTask}
+			/>
+		</div>
 
-			<div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg">
-				<div class="mb-4 flex items-center gap-3">
-					<div class="rounded-lg bg-blue-100 p-2">
-						<svg
-							class="h-5 w-5 text-blue-600"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M13 10V3L4 14h7v7l9-11h-7z"
-							/>
-						</svg>
-					</div>
-					<h2 class="text-lg font-bold text-gray-900">Recent Activity</h2>
+		<!-- Recent Activity -->
+		<div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg">
+			<div class="mb-4 flex items-center gap-3">
+				<div class="rounded-lg bg-blue-100 p-2">
+					<svg
+						class="h-5 w-5 text-blue-600"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M13 10V3L4 14h7v7l9-11h-7z"
+						/>
+					</svg>
 				</div>
-				<p class="text-sm text-gray-500">Activity feed coming soon...</p>
+				<h2 class="text-lg font-bold text-gray-900">Recent Activity</h2>
 			</div>
+			<p class="text-sm text-gray-500">Activity feed coming soon...</p>
 		</div>
 	</div>
 {/if}
 
 <InviteMemberModal bind:isOpen={showInviteModal} on:invited={handleInvited} />
 <EditProjectModal bind:isOpen={showEditProjectModal} {project} on:projectUpdated={handleProjectUpdated} />
+<AddProjectTaskModal bind:isOpen={showAddTaskModal} {members} />
+<EditProjectTaskModal 
+	bind:isOpen={showEditTaskModal} 
+	task={taskToEdit} 
+	{members} 
+	on:taskUpdated={() => invalidateAll()} 
+/>
