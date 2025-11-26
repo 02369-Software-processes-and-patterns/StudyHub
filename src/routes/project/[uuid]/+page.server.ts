@@ -1,13 +1,13 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import {
-	getAuthenticatedUser,
-	getProject,
-	getProjectMemberRole,
-	getProjectMembers,
-	addProjectMembers,
-	removeProjectMember,
-	deleteProject
+    getAuthenticatedUser,
+    getProject,
+    getProjectMemberRole,
+    getProjectMembers,
+    removeProjectMember,
+    deleteProject,
+    transferProjectOwnership
 } from '$lib/server/db';
 
 export const load: PageServerLoad = async ({ params, locals: { supabase } }) => {
@@ -177,5 +177,37 @@ export const actions: Actions = {
 		}
 
 		throw redirect(303, '/project');
-	}
+	},
+
+	transferOwnership: async ({ params, request, locals: { supabase } }) => {
+        const authResult = await getAuthenticatedUser(supabase);
+        if (authResult.error) {
+            return fail(authResult.error.status, { error: authResult.error.message });
+        }
+
+        const formData = await request.formData();
+        const newOwnerId = formData.get('new_owner_id')?.toString();
+
+        if (!newOwnerId) {
+            return fail(400, { error: 'New owner ID is required' });
+        }
+
+        if (newOwnerId === authResult.userId) {
+            return fail(400, { error: 'You are already the owner' });
+        }
+
+        const { error } = await transferProjectOwnership(
+            supabase,
+            params.uuid,
+            authResult.userId,
+            newOwnerId
+        );
+
+        if (error) {
+            console.error('Error transferring ownership:', error);
+            return fail(500, { error: error.message });
+        }
+
+        return { success: true, message: 'Ownership transferred successfully' };
+    }
 };

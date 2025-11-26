@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import InviteMemberModal from '$lib/components/modal/InviteMemberModal.svelte';
+	import TransferOwnershipModal from '$lib/components/modal/TransferOwnershipModal.svelte';
 	import ProjectMembers from '$lib/components/project/ProjectMembers.svelte';
 	import type { PageData } from './$types';
 
@@ -14,13 +15,21 @@
 
 	// Checks if the user has permission to invite (Owner or Admin)
 	$: canInvite = userRole === 'Owner' || userRole === 'Admin';
+	$: isOwner = userRole === 'Owner';
 
 	let showInviteModal = false;
+	let showTransferModal = false;
 
 	// Reload data when an invitation is successfully sent
 	function handleInvited() {
 		invalidateAll();
 		showInviteModal = false;
+	}
+
+	async function handleTransferred() {
+		await invalidateAll();
+		showTransferModal = false;
+		alert('Ownership has been transferred successfully. You are now an Admin.');
 	}
 </script>
 
@@ -139,33 +148,24 @@
 					</div>
 
 					<div class="flex items-center gap-2">
-						{#if userRole !== 'Owner'}
-							<form
-								method="POST"
-								action="?/leaveProject"
-								on:submit|preventDefault={(e) => {
-									if (confirm('Are you sure you want to leave this project?')) {
-										e.currentTarget.submit();
-									}
-								}}
+						{#if isOwner}
+							<button
+								type="button"
+								on:click={() => (showTransferModal = true)}
+								class="inline-flex items-center gap-2 rounded-lg border border-orange-200 bg-white px-4 py-2 text-sm font-medium text-orange-600 shadow-sm transition-colors hover:bg-orange-50"
+								title="Transfer Ownership"
 							>
-								<button
-									type="submit"
-									class="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 shadow-sm transition-colors hover:bg-red-50"
-									title="Leave Project"
-								>
-									<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-										/>
-									</svg>
-									Leave
-								</button>
-							</form>
-						{:else}
+								<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+									/>
+								</svg>
+								Transfer Ownership
+							</button>
+
 							<form
 								method="POST"
 								action="?/deleteProject"
@@ -193,6 +193,32 @@
 										/>
 									</svg>
 									Delete Project
+								</button>
+							</form>
+						{:else}
+							<form
+								method="POST"
+								action="?/leaveProject"
+								on:submit|preventDefault={(e) => {
+									if (confirm('Are you sure you want to leave this project?')) {
+										e.currentTarget.submit();
+									}
+								}}
+							>
+								<button
+									type="submit"
+									class="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 shadow-sm transition-colors hover:bg-red-50"
+									title="Leave Project"
+								>
+									<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+										/>
+									</svg>
+									Leave
 								</button>
 							</form>
 						{/if}
@@ -272,3 +298,9 @@
 {/if}
 
 <InviteMemberModal bind:isOpen={showInviteModal} on:invited={handleInvited} />
+<TransferOwnershipModal
+    bind:isOpen={showTransferModal}
+    {members}
+    currentUserId={data.userId || ''}
+    on:transferred={handleTransferred}
+/>
