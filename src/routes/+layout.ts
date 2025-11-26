@@ -36,23 +36,29 @@ export const load: LayoutLoad = async ({ data, depends, fetch }) => {
 		} = await supabase.auth.getUser();
 
 		if (!user) {
-			return { session: null, supabase, user: null };
+			return { session: null, supabase, user: null, pendingInvitationsCount: 0 };
 		}
 
 		// Create a minimal session object from the validated user
-		// We avoid getSession() entirely to prevent security warnings
 		const session: SafeSession = {
 			user,
 			expires_at: Math.floor(Date.now() / 1000) + 3600
 		};
 
-		return { session, supabase, user };
+		
+		return { 
+			session, 
+			supabase, 
+			user, 
+			pendingInvitationsCount: data.pendingInvitationsCount ?? 0 
+		};
 	}
 
 	// Server-side: use pre-validated data from +layout.server.ts
 	return {
 		session: data.session,
 		supabase,
-		user: data.user
+		user: data.user,
+		pendingInvitationsCount: data.pendingInvitationsCount ?? 0
 	};
 };

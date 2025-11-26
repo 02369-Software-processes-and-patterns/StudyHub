@@ -824,3 +824,175 @@ export async function deleteProject(
 	return { error };
 }
 
+
+export type InvitationWithDetails = {
+	id: string;
+	created_at: string;
+	role: string;
+	project: {
+		name: string;
+		description: string;
+	};
+	inviter: {
+		name: string;
+		email: string;
+	};
+};
+
+/**
+ * Opret en invitation i stedet for direkte medlemskab
+ */
+export async function createInvitation(
+	supabase: TypedSupabaseClient,
+	projectId: string,
+	inviterId: string,
+	invitedEmail: string,
+	role: string
+): Promise<{ error: Error | null }> {
+	// 1. Find brugerens ID ud fra email
+	const { data: userData, error: userError } = await supabase.rpc('get_user_ids_by_emails', {
+		email_list: [invitedEmail]
+	});
+
+	if (userError || !userData || userData.length === 0) {
+		return { error: new Error('User not found') };
+	}
+
+	const invitedUserId = userData[0].id;
+
+    // Tjek om brugeren allerede er medlem
+    const { data: existingMember } = await supabase
+        .from('project_members')
+        .select('id')
+        .eq('project_id', projectId)
+        .eq('user_id', invitedUserId)
+        .single();
+    
+    if (existingMember) {
+        return { error: new Error('User is already a member') };
+    }
+
+	// 2. Indsæt i project_invitations tabellen
+    // RETTELSE HER: 'invitor_user_id' (med O) i stedet for 'inviter_user_id'
+	const { error } = await supabase.from('project_invitations').insert({
+		project_id: projectId,
+		invitor_user_id: inviterId, 
+		invited_user_id: invitedUserId,
+		status: 'pending',
+		role: role
+	});
+
+	return { error };
+}
+
+/**
+ * Hent alle invitationer til den nuværende bruger
+ */
+export async function getMyInvitations(
+	supabase: TypedSupabaseClient,
+	userId: string
+): Promise<{ data: InvitationWithDetails[]; error: Error | null }> {
+	// 1. Hent invitationerne
+	const { data, error } = await supabase
+		.from('project_invitations')
+		.select(`
+			id,
+			created_at,
+			status,
+			role,
+			invitor_user_id,
+			project:projects (name, description)
+		`)
+		.eq('invited_user_id', userId)
+		.eq('status', 'pending');
+
+	if (error || !data) return { data: [], error };
+
+	// 2. Find alle unikke ID'er på dem, der har inviteret
+	const inviterIds = [...new Set(data.map((i) => i.invitor_user_id))];
+	
+	let invitersMap: Record<string, { name: string; email: string }> = {};
+
+	// 3. Hent detaljer på invitererne (hvis der er nogen)
+	if (inviterIds.length > 0) {
+		// Vi bruger 'any' cast fordi typen for RPC funktionen måske ikke er genereret endnu
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const { data: usersData } = await (supabase as any).rpc('get_inviter_details', {
+			inviter_ids: inviterIds
+		});
+
+		if (usersData) {
+			usersData.forEach((u: { id: string; name: string; email: string }) => {
+				invitersMap[u.id] = { name: u.name, email: u.email };
+			});
+		}
+	}
+
+	// 4. Sammensæt det hele
+	const invitations: InvitationWithDetails[] = data.map((invite) => ({
+		id: invite.id,
+		created_at: invite.created_at,
+		role: invite.role || 'Member',
+		project: Array.isArray(invite.project) ? invite.project[0] : invite.project,
+		// Her indsætter vi nu de rigtige data:
+		inviter: invitersMap[invite.invitor_user_id] || { 
+			name: 'Ukendt bruger', 
+			email: 'Ingen email' 
+		}
+	}));
+
+	return { data: invitations, error: null };
+}
+
+/**
+ * Accepter en invitation
+ */
+export async function acceptInvitation(
+	supabase: TypedSupabaseClient,
+	invitationId: string,
+	userId: string
+): Promise<{ error: Error | null }> {
+	// 1. Hent invitationen for at få projekt ID
+	const { data: invite, error: fetchError } = await supabase
+		.from('project_invitations')
+		.select('*')
+		.eq('id', invitationId)
+		.eq('invited_user_id', userId)
+		.single();
+
+	if (fetchError || !invite) return { error: fetchError || new Error('Invitation not found') };
+
+	// 2. Tilføj til project_members
+	const { error: insertError } = await supabase.from('project_members').insert({
+		project_id: invite.project_id,
+		user_id: userId,
+		role: invite.role || 'Member'
+	});
+
+	if (insertError) return { error: insertError };
+
+	// 3. Slet invitationen
+	const { error: deleteError } = await supabase
+		.from('project_invitations')
+		.delete()
+		.eq('id', invitationId);
+
+	return { error: deleteError };
+}
+
+/**
+ * Afvis en invitation
+ */
+export async function declineInvitation(
+	supabase: TypedSupabaseClient,
+	invitationId: string,
+	userId: string
+): Promise<{ error: Error | null }> {
+	const { error } = await supabase
+		.from('project_invitations')
+		.delete()
+		.eq('id', invitationId)
+		.eq('invited_user_id', userId);
+
+	return { error };
+}

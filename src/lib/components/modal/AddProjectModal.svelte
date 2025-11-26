@@ -29,7 +29,8 @@
 
 	const memberRoles = [
 		{ label: 'Member', value: 'Member' },
-		{ label: 'Viewer', value: 'Viewer' }
+		{ label: 'Viewer', value: 'Viewer' },
+		{ label: 'Admin', value: 'Admin' }
 	];
 
 	let searchTimeout: number;

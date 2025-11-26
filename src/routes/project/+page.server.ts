@@ -5,7 +5,7 @@ import {
 	getCourseOptions,
 	getProjectsWithRole,
 	createProject,
-	addProjectMembers
+    createInvitation // Vi bruger denne i stedet for addProjectMembers
 } from '$lib/server/db';
 
 export const load: PageServerLoad = async ({ locals: { supabase } }) => {
@@ -62,7 +62,6 @@ export const actions: Actions = {
 		}
 
 		// Create the project with owner
-		// Import ProjectStatus type from db.ts which is 'planning' | 'active' | 'completed' | 'on-hold'
 		type ProjectStatusType = 'planning' | 'active' | 'completed' | 'on-hold';
 		const validStatuses: ProjectStatusType[] = ['planning', 'active', 'on-hold', 'completed'];
 		const projectStatus: ProjectStatusType = validStatuses.includes(status as ProjectStatusType)
@@ -85,17 +84,22 @@ export const actions: Actions = {
 			return fail(500, { error: projectError?.message || 'Failed to create project' });
 		}
 
-		// Add invited members
+		// Send invitationer til de valgte medlemmer
 		if (invitedMembers.length > 0) {
-			const { error: membersError } = await addProjectMembers(
-				supabase,
-				newProject.id,
-				invitedMembers
-			);
-			if (membersError) {
-				console.error('Error adding invited members:', membersError);
-				// Continue anyway, owner is added
-			}
+            for (const member of invitedMembers) {
+                const { error: inviteError } = await createInvitation(
+                    supabase,
+                    newProject.id,
+                    authResult.userId, // Dig (ejeren) er inviteren
+                    member.email,
+                    member.role
+                );
+
+                if (inviteError) {
+                    console.error(`Failed to invite ${member.email} during project creation:`, inviteError);
+                    // Vi fortsætter selvom en invitation fejler, da projektet ER oprettet
+                }
+            }
 		}
 
 		return { success: true };
