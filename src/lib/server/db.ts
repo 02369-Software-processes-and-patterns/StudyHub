@@ -1007,3 +1007,19 @@ export async function removeProjectMember(
 
 	return { error };
 }
+
+/**
+ * Delete a project by ID
+ */
+export async function deleteProject(
+	supabase: TypedSupabaseClient,
+	projectId: string
+): Promise<{ error: Error | null }> {
+	const { error } = await supabase
+		.from('projects')
+		.delete()
+		.eq('id', projectId);
+
+	return { error };
+}
+
