@@ -2,6 +2,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import InviteMemberModal from '$lib/components/modal/InviteMemberModal.svelte';
 	import ProjectMembers from '$lib/components/project/ProjectMembers.svelte';
+	import ProjectTaskList from '$lib/components/list/ProjectTaskList.svelte';
 	import type { PageData } from './$types';
 
 	// data comes from the load function in +page.ts
@@ -194,26 +195,56 @@
 		</div>
 
 		<div class="grid gap-8 md:grid-cols-2">
-			<div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg">
-				<div class="mb-4 flex items-center gap-3">
-					<div class="rounded-lg bg-purple-100 p-2">
-						<svg
-							class="h-5 w-5 text-purple-600"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-							/>
-						</svg>
-					</div>
-					<h2 class="text-lg font-bold text-gray-900">Project Tasks</h2>
-				</div>
-				<p class="text-sm text-gray-500">Task management coming soon...</p>
+			<div class="min-h-[400px]">
+				<ProjectTaskList 
+					tasks={[
+						{
+							id: '1',
+							name: 'Design database schema',
+							status: 'completed',
+							deadline: '2025-11-20T23:59:00',
+							effort_hours: 4,
+							assignee: members[0] ?? null
+						},
+						{
+							id: '2',
+							name: 'Implement user authentication',
+							status: 'working',
+							deadline: '2025-11-28T23:59:00',
+							effort_hours: 8,
+							assignee: members[1] ?? null
+						},
+						{
+							id: '3',
+							name: 'Create API endpoints',
+							status: 'todo',
+							deadline: '2025-12-01T23:59:00',
+							effort_hours: 6,
+							assignee: members[2] ?? null
+						},
+						{
+							id: '4',
+							name: 'Write unit tests',
+							status: 'pending',
+							deadline: '2025-12-05T23:59:00',
+							effort_hours: 5,
+							assignee: null
+						},
+						{
+							id: '5',
+							name: 'Setup CI/CD pipeline',
+							status: 'on-hold',
+							deadline: '2025-11-25T23:59:00',
+							effort_hours: 3,
+							assignee: members[0] ?? null
+						}
+					]}
+					{members}
+					onAddTask={() => {
+						// TODO: Implement add task modal
+						console.log('Add task clicked');
+					}}
+				/>
 			</div>
 
 			<div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg">
