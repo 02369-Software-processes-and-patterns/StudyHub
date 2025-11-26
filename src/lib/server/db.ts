@@ -15,14 +15,15 @@ type TypedSupabaseClient = SupabaseClient<Database>;
 export type TaskStatus = 'pending' | 'todo' | 'on-hold' | 'working' | 'completed';
 
 export type TaskWithCourse = {
-	id: string;
-	name: string;
-	effort_hours: number;
-	deadline: string;
-	status: TaskStatus;
-	course_id: string | null;
-	created_at: string;
-	course: { id: string; name: string } | null;
+    id: string;
+    name: string;
+    effort_hours: number;
+    deadline: string;
+    status: TaskStatus;
+    course_id: string | null;
+    created_at: string;
+    priority: number | null;
+    course: { id: string; name: string } | null;
 };
 
 export type Course = {
@@ -37,20 +38,22 @@ export type Course = {
 };
 
 export type TaskUpdateData = {
-	status?: TaskStatus;
-	name?: string;
-	effort_hours?: number;
-	deadline?: string;
-	course_id?: string | null;
+    status?: TaskStatus;
+    name?: string;
+    effort_hours?: number;
+    deadline?: string;
+    course_id?: string | null;
+    priority?: number;
 };
 
 export type TaskCreateData = {
-	user_id: string;
-	name: string;
-	effort_hours: number;
-	deadline: string;
-	course_id?: string | null;
-	status?: TaskStatus;
+    user_id: string;
+    name: string;
+    effort_hours: number;
+    deadline: string;
+    course_id?: string | null;
+    status?: TaskStatus;
+    priority?: number;
 };
 
 // =============================================================================
@@ -61,28 +64,29 @@ export type TaskCreateData = {
  * Fetch all tasks for a user with course information
  */
 export async function getTasksWithCourse(
-	supabase: TypedSupabaseClient,
-	userId: string,
-	orderBy: 'deadline' | 'created_at' = 'deadline'
+    supabase: TypedSupabaseClient,
+    userId: string,
+    orderBy: 'deadline' | 'created_at' = 'deadline'
 ): Promise<{ data: TaskWithCourse[] | null; error: Error | null }> {
-	const { data, error } = await supabase
-		.from('tasks')
-		.select(
-			`
-			id,
-			name,
-			effort_hours,
-			deadline,
-			status,
-			course_id,
-			created_at,
-			course:courses(id, name)
-		`
-		)
-		.eq('user_id', userId)
-		.order(orderBy, { ascending: orderBy === 'deadline' });
+    const { data, error } = await supabase
+        .from('tasks')
+        .select(
+            `
+            id,
+            name,
+            effort_hours,
+            deadline,
+            status,
+            course_id,
+            created_at,
+            priority,
+            course:courses(id, name)
+        `
+        )
+        .eq('user_id', userId)
+        .order(orderBy, { ascending: orderBy === 'deadline' });
 
-	return { data: data as TaskWithCourse[] | null, error };
+    return { data: data as TaskWithCourse[] | null, error };
 }
 
 /**
@@ -315,102 +319,124 @@ export async function getAuthenticatedUser(
  * Parse and validate task update data from FormData
  */
 export function parseTaskUpdateForm(formData: FormData): {
-	taskId: string | null;
-	updates: TaskUpdateData;
-	error: string | null;
+    taskId: string | null;
+    updates: TaskUpdateData;
+    error: string | null;
 } {
-	const taskId = formData.get('task_id')?.toString() ?? null;
+    const taskId = formData.get('task_id')?.toString() ?? null;
 
-	if (!taskId) {
-		return { taskId: null, updates: {}, error: 'Missing task_id' };
-	}
+    if (!taskId) {
+        return { taskId: null, updates: {}, error: 'Missing task_id' };
+    }
 
-	const updates: TaskUpdateData = {};
-	const allowedStatuses: TaskStatus[] = ['pending', 'todo', 'on-hold', 'working', 'completed'];
+    const updates: TaskUpdateData = {};
+    const allowedStatuses: TaskStatus[] = ['pending', 'todo', 'on-hold', 'working', 'completed'];
 
-	// Parse status
-	if (formData.has('status')) {
-		const raw = formData.get('status')?.toString().toLowerCase();
-		if (!raw || !allowedStatuses.includes(raw as TaskStatus)) {
-			return { taskId, updates: {}, error: 'Invalid status value' };
-		}
-		updates.status = raw as TaskStatus;
-	}
+    // Parse status
+    if (formData.has('status')) {
+        const raw = formData.get('status')?.toString().toLowerCase();
+        if (!raw || !allowedStatuses.includes(raw as TaskStatus)) {
+            return { taskId, updates: {}, error: 'Invalid status value' };
+        }
+        updates.status = raw as TaskStatus;
+    }
 
-	// Parse name
-	if (formData.has('name')) {
-		const name = formData.get('name')?.toString()?.trim();
-		if (name) updates.name = name;
-	}
+    // Parse name
+    if (formData.has('name')) {
+        const name = formData.get('name')?.toString()?.trim();
+        if (name) updates.name = name;
+    }
 
-	// Parse effort_hours
-	if (formData.has('effort_hours')) {
-		const num = Number.parseFloat(formData.get('effort_hours')?.toString() ?? '');
-		if (!Number.isFinite(num) || num < 0) {
-			return { taskId, updates: {}, error: 'Invalid effort_hours' };
-		}
-		updates.effort_hours = Math.round(num);
-	}
+    // Parse effort_hours
+    if (formData.has('effort_hours')) {
+        const num = Number.parseFloat(formData.get('effort_hours')?.toString() ?? '');
+        if (!Number.isFinite(num) || num < 0) {
+            return { taskId, updates: {}, error: 'Invalid effort_hours' };
+        }
+        updates.effort_hours = Math.round(num);
+    }
 
-	// Parse deadline
-	if (formData.has('deadline')) {
-		const raw = formData.get('deadline')?.toString();
-		if (raw) {
-			const d = new Date(raw);
-			updates.deadline = isNaN(d.getTime()) ? raw : d.toISOString();
-		}
-	}
+    // Parse deadline
+    if (formData.has('deadline')) {
+        const raw = formData.get('deadline')?.toString();
+        if (raw) {
+            const d = new Date(raw);
+            updates.deadline = isNaN(d.getTime()) ? raw : d.toISOString();
+        }
+    }
 
-	// Parse course_id
-	if (formData.has('course_id')) {
-		const cid = formData.get('course_id')?.toString() || null;
-		updates.course_id = cid;
-	}
+    // Parse course_id
+    if (formData.has('course_id')) {
+        const cid = formData.get('course_id')?.toString() || null;
+        updates.course_id = cid;
+    }
 
-	if (Object.keys(updates).length === 0) {
-		return { taskId, updates: {}, error: 'No updatable fields provided' };
-	}
+    // Parse priority
+    if (formData.has('priority')) {
+        const priorityStr = formData.get('priority')?.toString();
+        if (priorityStr) {
+            const priority = Number.parseInt(priorityStr);
+            if (!Number.isFinite(priority) || priority < 1 || priority > 3) {
+                return { taskId, updates: {}, error: 'Priority must be 1, 2, or 3' };
+            }
+            updates.priority = priority;
+        }
+    }
 
-	return { taskId, updates, error: null };
+    if (Object.keys(updates).length === 0) {
+        return { taskId, updates: {}, error: 'No updatable fields provided' };
+    }
+
+    return { taskId, updates, error: null };
 }
 
 /**
  * Parse and validate task creation data from FormData
  */
 export function parseTaskCreateForm(formData: FormData): {
-	data: Omit<TaskCreateData, 'user_id'> | null;
-	error: string | null;
+    data: Omit<TaskCreateData, 'user_id'> | null;
+    error: string | null;
 } {
-	const name = formData.get('name')?.toString()?.trim();
-	const effortStr = formData.get('effort_hours')?.toString();
-	const courseId = formData.get('course_id')?.toString() || null;
-	const deadlineRaw = formData.get('deadline')?.toString();
+    const name = formData.get('name')?.toString()?.trim();
+    const effortStr = formData.get('effort_hours')?.toString();
+    const courseId = formData.get('course_id')?.toString() || null;
+    const deadlineRaw = formData.get('deadline')?.toString();
+    const priorityStr = formData.get('priority')?.toString();
 
-	if (!name) return { data: null, error: 'Missing name' };
-	if (!effortStr) return { data: null, error: 'Missing effort_hours' };
+    if (!name) return { data: null, error: 'Missing name' };
+    if (!effortStr) return { data: null, error: 'Missing effort_hours' };
 
-	let effortHours = Number.parseFloat(effortStr);
-	if (!Number.isFinite(effortHours) || effortHours < 0) {
-		return { data: null, error: 'effort_hours must be a non-negative number' };
-	}
-	effortHours = Math.round(effortHours);
+    let effortHours = Number.parseFloat(effortStr);
+    if (!Number.isFinite(effortHours) || effortHours < 0) {
+        return { data: null, error: 'effort_hours must be a non-negative number' };
+    }
+    effortHours = Math.round(effortHours);
 
-	let deadline: string = '';
-	if (deadlineRaw) {
-		const d = new Date(deadlineRaw);
-		deadline = isNaN(d.getTime()) ? deadlineRaw : d.toISOString();
-	}
+    let deadline: string = '';
+    if (deadlineRaw) {
+        const d = new Date(deadlineRaw);
+        deadline = isNaN(d.getTime()) ? deadlineRaw : d.toISOString();
+    }
 
-	return {
-		data: {
-			name,
-			effort_hours: effortHours,
-			course_id: courseId,
-			deadline,
-			status: 'pending'
-		},
-		error: null
-	};
+    let priority: number | undefined = undefined;
+    if (priorityStr) {
+        priority = Number.parseInt(priorityStr);
+        if (!Number.isFinite(priority) || priority < 1 || priority > 3) {
+            return { data: null, error: 'Priority must be 1, 2, or 3' };
+        }
+    }
+
+    return {
+        data: {
+            name,
+            effort_hours: effortHours,
+            course_id: courseId,
+            deadline,
+            status: 'pending',
+            priority
+        },
+        error: null
+    };
 }
 
 // =============================================================================
