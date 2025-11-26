@@ -499,7 +499,7 @@
 							</td>
 
 							<!-- STATUS dropdown (hidden when completed) -->
-							<td class="px-2 py-2 text-xs sm:px-4 md:px-6 md:py-4">
+							<td class="min-w-[100px] px-2 py-2 text-xs sm:min-w-[120px] sm:px-4 md:px-6 md:py-4">
 								{#if task.status === 'completed'}
 									<span
 										class="inline-flex items-center gap-1 rounded-md bg-green-100 px-2 py-1 text-xs font-medium text-green-700 sm:text-sm"
@@ -523,12 +523,12 @@
 												update({ reset: false })}
 									>
 										<input type="hidden" name="task_id" value={task.id} />
-										<select
-											name="status"
-											class="w-full rounded-md border-gray-300 bg-white px-1.5 py-1 text-xs focus:border-purple-500 focus:ring-purple-500 sm:px-2 sm:text-sm"
-											on:change={(e) => e.currentTarget.form?.requestSubmit()}
-											aria-label="Change task status"
-										>
+									<select
+										name="status"
+										class="w-full truncate rounded-md border-gray-300 bg-white px-1.5 py-1 pr-7 text-xs focus:border-purple-500 focus:ring-purple-500 sm:px-2 sm:pr-8 sm:text-sm"
+										on:change={(e) => e.currentTarget.form?.requestSubmit()}
+										aria-label="Change task status"
+									>
 											{#each statusOptionsNoCompleted as opt (opt.value)}
 												<option value={opt.value} selected={task.status === opt.value}>
 													{opt.label}

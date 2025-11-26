@@ -62,6 +62,7 @@ export type ProjectTaskCreateData = {
 	effort_hours: number;
 	deadline: string;
 	user_id?: string | null; // Assigned member (null = unassigned)
+	course_id?: string | null; // Inherited from project's linked course
 	status?: TaskStatus;
 };
 
@@ -149,6 +150,7 @@ export async function createProjectTask(
 			name: taskData.name,
 			effort_hours: taskData.effort_hours,
 			deadline: taskData.deadline,
+			course_id: taskData.course_id ?? null, // Inherited from project's linked course
 			status: taskData.status ?? 'pending'
 		})
 		.select('id')
