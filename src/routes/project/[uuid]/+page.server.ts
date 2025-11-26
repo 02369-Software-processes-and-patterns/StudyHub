@@ -153,6 +153,54 @@ export const actions: Actions = {
         return { success: true };
     },
 
+	updateProject: async ({ request, params, locals: { supabase } }) => {
+        // Auth
+        const auth = await getAuthenticatedUser(supabase);
+        if (auth.error) return fail(auth.error.status, { error: auth.error.message });
+
+        const projectId = params.uuid;
+
+        // Permission
+        const { role } = await getProjectMemberRole(supabase, projectId, auth.userId);
+        if (!role || !['Owner', 'Admin'].includes(role)) {
+            return fail(403, { error: 'Only Owners and Admins can update the project.' });
+        }
+
+        // Data
+        const form = await request.formData();
+        const name = (form.get('name') as string)?.trim();
+        const description = (form.get('description') as string | null)?.trim() || undefined;
+        const statusRaw = (form.get('status') as string | null) ?? null;
+        const course_id_raw = (form.get('course_id') as string | null) ?? null;
+
+        if (!name) return fail(400, { error: 'Name is required' });
+
+        // Normalize status
+        const norm = (s?: string | null) => {
+            if (!s) return 'planning';
+            if (s === 'on-hold') return 'on-hold';
+            const allowed = ['planning', 'active', 'on-hold', 'completed'] as const;
+            return (allowed as readonly string[]).includes(s) ? s : 'planning';
+        };
+
+        const { error } = await supabase
+            .from('projects')
+            .update({
+                name,
+                description,
+                status: norm(statusRaw),
+                course_id: course_id_raw || null
+            })
+            .eq('id', projectId);
+
+        if (error) {
+            console.error('updateProject error:', error);
+            return fail(500, { error: error.message || 'Failed to update project.' });
+        }
+
+        return { success: true };
+	},
+
 	deleteProject: async ({ params, locals: { supabase } }) => {
 		const authResult = await getAuthenticatedUser(supabase);
 		if (authResult.error) {
@@ -164,7 +212,7 @@ export const actions: Actions = {
 
 		// tjekker om brugeren er Owner
 		const { role } = await getProjectMemberRole(supabase, projectId, userId);
-		if (role !== 'Owner') {
+		if (role !== 'Owner' && role !== 'Admin') {
 			return fail(403, { error: 'Only the project Owner can delete the project.' });
 		}
 
@@ -177,5 +225,5 @@ export const actions: Actions = {
 		}
 
 		throw redirect(303, '/project');
-	}
+	},
 };

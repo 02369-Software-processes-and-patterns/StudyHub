@@ -2,11 +2,16 @@
 	import { invalidateAll } from '$app/navigation';
 	import InviteMemberModal from '$lib/components/modal/InviteMemberModal.svelte';
 	import ProjectMembers from '$lib/components/project/ProjectMembers.svelte';
+	import EditProjectModal from '$lib/components/modal/EditProjectModal.svelte';
 	import type { PageData } from './$types';
 
 	// data comes from the load function in +page.ts
 	export let data: PageData;
 
+	let project: PageData['project'] = data.project;
+    let userRole: PageData['userRole'] = data.userRole;
+    let members: NonNullable<PageData['members']> = data.members || [];
+	
 	// reactive variables updated when data changes
 	$: project = data.project;
 	$: userRole = data.userRole;
@@ -15,13 +20,21 @@
 	// Checks if the user has permission to invite (Owner or Admin)
 	$: canInvite = userRole === 'Owner' || userRole === 'Admin';
 
+	// Checks if the user has permission to edit the project (Owner or Admin)
+	$: canEdit = userRole === 'Owner' || userRole === 'Admin';
+
 	let showInviteModal = false;
+	let showEditProjectModal = false;
 
 	// Reload data when an invitation is successfully sent
 	function handleInvited() {
 		invalidateAll();
 		showInviteModal = false;
 	}
+	function handleProjectUpdated() {
+        invalidateAll();
+		showEditProjectModal = false;
+    }
 </script>
 
 {#if !project}
@@ -196,6 +209,18 @@
 								</button>
 							</form>
 						{/if}
+                        {#if canEdit}
+                            <button
+                                type="button"
+                                on:click={() => (showEditProjectModal = true)}
+                                class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+                            >
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M4 13.5V19h5.5l9.621-9.621a1.5 1.5 0 00-2.121-2.121L4 13.5z" />
+                                </svg>
+                                Edit Project
+                            </button>
+                        {/if}
 
 						{#if canInvite}
 							<button
@@ -272,3 +297,4 @@
 {/if}
 
 <InviteMemberModal bind:isOpen={showInviteModal} on:invited={handleInvited} />
+<EditProjectModal bind:isOpen={showEditProjectModal} {project} on:projectUpdated={handleProjectUpdated} />

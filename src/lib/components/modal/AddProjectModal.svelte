@@ -24,7 +24,7 @@
 		{ label: 'Planning', value: 'planning' },
 		{ label: 'In Progress', value: 'in_progress' },
 		{ label: 'Completed', value: 'completed' },
-		{ label: 'On Hold', value: 'on_hold' }
+		{ label: 'On Hold', value: 'on hold' }
 	];
 
 	const memberRoles = [
