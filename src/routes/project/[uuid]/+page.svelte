@@ -143,28 +143,36 @@
 							<form
 								method="POST"
 								action="?/leaveProject"
-								on:submit|preventDefault={(e) => {
-									if (confirm('Are you sure you want to leave this project?')) {
-										e.currentTarget.submit();
-									}
-								}}
 							>
-								<button
-									type="submit"
-									class="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 shadow-sm transition-colors hover:bg-red-50"
-									title="Leave Project"
-								>
-									<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-										/>
-									</svg>
-									Leave
-								</button>
+                                ...
 							</form>
+						{:else}
+                            <form
+                                method="POST"
+                                action="?/deleteProject"
+                                on:submit|preventDefault={(e) => {
+                                    // Bekræftelses-dialog
+                                    if (confirm('DANGER: Are you sure you want to delete this entire project? This action cannot be undone and will remove all tasks and members.')) {
+                                        e.currentTarget.submit();
+                                    }
+                                }}
+                            >
+                                <button
+                                    type="submit"
+                                    class="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 shadow-sm transition-colors hover:bg-red-100 hover:border-red-300"
+                                    title="Delete Project Permanently"
+                                >
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                        />
+                                    </svg>
+                                    Delete Project
+                                </button>
+                            </form>
 						{/if}
 
 						{#if canInvite}

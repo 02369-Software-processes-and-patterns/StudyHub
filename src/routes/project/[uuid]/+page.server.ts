@@ -6,7 +6,8 @@ import {
 	getProjectMemberRole,
 	getProjectMembers,
 	addProjectMembers,
-	removeProjectMember
+	removeProjectMember,
+	deleteProject
 } from '$lib/server/db';
 
 export const load: PageServerLoad = async ({ params, locals: { supabase } }) => {
@@ -150,5 +151,31 @@ export const actions: Actions = {
         }
 
         return { success: true };
-    }
+    },
+
+	deleteProject: async ({ params, locals: { supabase } }) => {
+		const authResult = await getAuthenticatedUser(supabase);
+		if (authResult.error) {
+			return fail(authResult.error.status, { error: authResult.error.message });
+		}
+
+		const projectId = params.uuid;
+		const userId = authResult.userId;
+
+		// tjekker om brugeren er Owner
+		const { role } = await getProjectMemberRole(supabase, projectId, userId);
+		if (role !== 'Owner') {
+			return fail(403, { error: 'Only the project Owner can delete the project.' });
+		}
+
+		// Slet projektet
+		const { error } = await deleteProject(supabase, projectId);
+
+		if (error) {
+			console.error('Error deleting project:', error);
+			return fail(500, { error: 'Failed to delete project.' });
+		}
+
+		throw redirect(303, '/project');
+	}
 };
