@@ -19,7 +19,7 @@ import {
 export const load: PageServerLoad = async ({ params, locals: { supabase } }) => {
 	const authResult = await getAuthenticatedUser(supabase);
 	if (authResult.error) {
-		return { project: null, userRole: null, members: [], tasks: [] };
+		return { project: null, userRole: null, members: [], tasks: [], userId: null };
 	}
 
 	const { uuid } = params;
@@ -34,7 +34,7 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
 
 	if (projectResult.error) {
 		console.error('Error loading project:', projectResult.error);
-		return { project: null, userRole: null, members: [], tasks: [] };
+		return { project: null, userRole: null, members: [], tasks: [], userId: null };
 	}
 
 	if (tasksResult.error) {
@@ -45,7 +45,8 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
 		project: projectResult.data,
 		userRole: roleResult.role,
 		members: membersResult.data ?? [],
-		tasks: tasksResult.data ?? []
+		tasks: tasksResult.data ?? [],
+		userId: authResult.userId
 	};
 };
 

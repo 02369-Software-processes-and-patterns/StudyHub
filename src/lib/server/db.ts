@@ -1027,7 +1027,7 @@ export async function deleteProject(
 
 /**
  * Transfer project ownership to another member
- * Both users must be members of the project
+ * Uses RPC function to bypass RLS policies that prevent updating Owner rows
  */
 export async function transferProjectOwnership(
     supabase: TypedSupabaseClient,
@@ -1035,57 +1035,12 @@ export async function transferProjectOwnership(
     currentOwnerId: string,
     newOwnerId: string
 ): Promise<{ error: Error | null }> {
-    // Verify current user is the owner
-    const { data: currentMember, error: currentError } = await supabase
-        .from('project_members')
-        .select('role')
-        .eq('project_id', projectId)
-        .eq('user_id', currentOwnerId)
-        .single();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC functions aren't typed
+    const { error } = await (supabase as any).rpc('transfer_project_ownership', {
+        p_project_id: projectId,
+        p_current_owner_id: currentOwnerId,
+        p_new_owner_id: newOwnerId
+    });
 
-    if (currentError || !currentMember || currentMember.role !== 'Owner') {
-        return { error: new Error('Only the current owner can transfer ownership') };
-    }
-
-    // Verify new owner is a member of the project
-    const { data: newMember, error: newMemberError } = await supabase
-        .from('project_members')
-        .select('role')
-        .eq('project_id', projectId)
-        .eq('user_id', newOwnerId)
-        .single();
-
-    if (newMemberError || !newMember) {
-        return { error: new Error('New owner must be a member of the project') };
-    }
-
-    // Update old owner to Admin
-    const { error: demoteError } = await supabase
-        .from('project_members')
-        .update({ role: 'Admin' })
-        .eq('project_id', projectId)
-        .eq('user_id', currentOwnerId);
-
-    if (demoteError) {
-        return { error: demoteError };
-    }
-
-    // Update new owner to Owner
-    const { error: promoteError } = await supabase
-        .from('project_members')
-        .update({ role: 'Owner' })
-        .eq('project_id', projectId)
-        .eq('user_id', newOwnerId);
-
-    if (promoteError) {
-        // Rollback - restore old owner
-        await supabase
-            .from('project_members')
-            .update({ role: 'Owner' })
-            .eq('project_id', projectId)
-            .eq('user_id', currentOwnerId);
-        return { error: promoteError };
-    }
-
-    return { error: null };
+    return { error };
 }

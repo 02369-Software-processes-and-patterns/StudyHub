@@ -316,7 +316,7 @@
 			</div>
 
 			<div class="p-6">
-				<ProjectMembers {members} />
+				<ProjectMembers {members} currentUserId={data.userId || ''} {userRole} />
 			</div>
 		</div>
 
