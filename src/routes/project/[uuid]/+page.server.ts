@@ -153,8 +153,8 @@ export const actions: Actions = {
 		}
 
 		const effortHours = parseFloat(effortHoursStr);
-		if (isNaN(effortHours) || effortHours <= 0) {
-			return fail(400, { error: 'Effort hours must be a positive number.' });
+		if (isNaN(effortHours) || effortHours < 0.5) {
+			return fail(400, { error: 'Effort hours must be at least 0.5.' });
 		}
 
 		// If assigning to someone, verify they are a project member
@@ -179,7 +179,6 @@ export const actions: Actions = {
 
 		if (error) {
 			console.error('Error creating project task:', error);
-			console.error('Task data:', { project_id: projectId, name: name.trim(), effort_hours: effortHours, deadline, user_id: assignedUserId });
 			return fail(500, { error: `Failed to create task: ${error.message}` });
 		}
 
@@ -215,14 +214,21 @@ export const actions: Actions = {
 		if (name !== null) updates.name = (name as string).trim();
 
 		const status = formData.get('status');
-		if (status !== null) updates.status = status as string;
+		const validStatuses = ['pending', 'todo', 'on-hold', 'working', 'completed'];
+		if (status !== null) {
+			if (!validStatuses.includes(status as string)) {
+				return fail(400, { error: 'Invalid status value.' });
+			}
+			updates.status = status as string;
+		}
 
 		const effortHoursStr = formData.get('effort_hours');
 		if (effortHoursStr !== null) {
 			const effortHours = parseFloat(effortHoursStr as string);
-			if (!isNaN(effortHours) && effortHours > 0) {
-				updates.effort_hours = effortHours;
+			if (isNaN(effortHours) || effortHours < 0.5) {
+				return fail(400, { error: 'Effort hours must be at least 0.5.' });
 			}
+			updates.effort_hours = effortHours;
 		}
 
 		const deadline = formData.get('deadline');
@@ -258,8 +264,9 @@ export const actions: Actions = {
 		}
 
 		const formData = await request.formData();
-		const taskId = formData.get('task_id') as string;
-		const assigneeId = formData.get('user_id') as string | null;
+		const taskId = formData.get('task_id')?.toString();
+		const rawAssigneeId = formData.get('user_id')?.toString();
+		const assigneeId = rawAssigneeId && rawAssigneeId.trim() !== '' ? rawAssigneeId : null;
 
 		if (!taskId) {
 			return fail(400, { error: 'Task ID is required.' });
@@ -269,7 +276,7 @@ export const actions: Actions = {
 			supabase,
 			taskId,
 			projectId,
-			assigneeId || null
+			assigneeId
 		);
 
 		if (error) {

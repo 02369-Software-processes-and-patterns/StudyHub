@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { invalidateAll } from '$app/navigation';
+
 	type TaskStatus = 'pending' | 'todo' | 'on-hold' | 'working' | 'completed';
 
 	type Member = {
@@ -119,7 +121,8 @@
 	async function handleAssigneeChange(taskId: string | number, memberId: string) {
 		const formData = new FormData();
 		formData.append('task_id', String(taskId));
-		formData.append('user_id', memberId || '');
+		// Explicitly handle empty string as empty value for unassignment
+		formData.append('user_id', memberId);
 
 		try {
 			const response = await fetch('?/assignTask', {
@@ -127,7 +130,10 @@
 				body: formData
 			});
 
-			if (!response.ok) {
+			if (response.ok) {
+				// Refresh the page data to reflect the assignment change
+				await invalidateAll();
+			} else {
 				console.error('Failed to assign task');
 			}
 		} catch (error) {
