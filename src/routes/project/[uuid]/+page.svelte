@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import InviteMemberModal from '$lib/components/modal/InviteMemberModal.svelte';
+	import AddProjectTaskModal from '$lib/components/modal/AddProjectTaskModal.svelte';
 	import ProjectMembers from '$lib/components/project/ProjectMembers.svelte';
+	import ProjectTaskList from '$lib/components/list/ProjectTaskList.svelte';
 	import type { PageData } from './$types';
 
 	// data comes from the load function in +page.ts
@@ -11,11 +13,30 @@
 	$: project = data.project;
 	$: userRole = data.userRole;
 	$: members = data.members || [];
+	$: serverTasks = data.tasks || [];
+
+	// Transform server tasks to match ProjectTaskList format
+	$: tasks = serverTasks.map((task) => ({
+		id: task.id,
+		name: task.name,
+		status: task.status,
+		deadline: task.deadline,
+		effort_hours: task.effort_hours,
+		assignee: task.assignee
+			? {
+					id: task.assignee.id,
+					name: task.assignee.name,
+					email: task.assignee.email,
+					role: 'Member' as const
+				}
+			: null
+	}));
 
 	// Checks if the user has permission to invite (Owner or Admin)
 	$: canInvite = userRole === 'Owner' || userRole === 'Admin';
 
 	let showInviteModal = false;
+	let showAddTaskModal = false;
 
 	// Reload data when an invitation is successfully sent
 	function handleInvited() {
@@ -224,26 +245,14 @@
 		</div>
 
 		<div class="grid gap-8 md:grid-cols-2">
-			<div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg">
-				<div class="mb-4 flex items-center gap-3">
-					<div class="rounded-lg bg-purple-100 p-2">
-						<svg
-							class="h-5 w-5 text-purple-600"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-							/>
-						</svg>
-					</div>
-					<h2 class="text-lg font-bold text-gray-900">Project Tasks</h2>
-				</div>
-				<p class="text-sm text-gray-500">Task management coming soon...</p>
+			<div class="min-h-[400px]">
+				<ProjectTaskList 
+					{tasks}
+					{members}
+					onAddTask={() => {
+						showAddTaskModal = true;
+					}}
+				/>
 			</div>
 
 			<div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg">
@@ -272,3 +281,4 @@
 {/if}
 
 <InviteMemberModal bind:isOpen={showInviteModal} on:invited={handleInvited} />
+<AddProjectTaskModal bind:isOpen={showAddTaskModal} {members} />

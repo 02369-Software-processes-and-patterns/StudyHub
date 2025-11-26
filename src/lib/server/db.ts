@@ -42,8 +42,10 @@ export type TaskUpdateData = {
 	effort_hours?: number;
 	deadline?: string;
 	course_id?: string | null;
+	user_id?: string | null; // For assigning project tasks to members
 };
 
+// For personal tasks (user_id set, project_id null)
 export type TaskCreateData = {
 	user_id: string;
 	name: string;
@@ -51,6 +53,33 @@ export type TaskCreateData = {
 	deadline: string;
 	course_id?: string | null;
 	status?: TaskStatus;
+};
+
+// For project tasks (project_id set, user_id is assigned member or null)
+export type ProjectTaskCreateData = {
+	project_id: string;
+	name: string;
+	effort_hours: number;
+	deadline: string;
+	user_id?: string | null; // Assigned member (null = unassigned)
+	status?: TaskStatus;
+};
+
+// Project task with assignee information
+export type ProjectTaskWithAssignee = {
+	id: string;
+	name: string;
+	effort_hours: number;
+	deadline: string;
+	status: TaskStatus;
+	project_id: string;
+	created_at: string;
+	user_id: string | null; // Assigned member
+	assignee?: {
+		id: string;
+		name: string;
+		email: string;
+	} | null;
 };
 
 // =============================================================================
@@ -86,7 +115,7 @@ export async function getTasksWithCourse(
 }
 
 /**
- * Create a new task
+ * Create a new personal task (user_id set, project_id null)
  */
 export async function createTask(
 	supabase: TypedSupabaseClient,
@@ -94,12 +123,182 @@ export async function createTask(
 ): Promise<{ error: Error | null }> {
 	const { error } = await supabase.from('tasks').insert({
 		user_id: taskData.user_id,
+		project_id: null, // Explicitly null for personal tasks
 		name: taskData.name,
 		effort_hours: taskData.effort_hours,
 		deadline: taskData.deadline,
 		course_id: taskData.course_id ?? null,
 		status: taskData.status ?? 'pending'
 	});
+
+	return { error };
+}
+
+/**
+ * Create a new project task (project_id set, user_id is assigned member or null)
+ */
+export async function createProjectTask(
+	supabase: TypedSupabaseClient,
+	taskData: ProjectTaskCreateData
+): Promise<{ data: { id: string } | null; error: Error | null }> {
+	const { data, error } = await supabase
+		.from('tasks')
+		.insert({
+			user_id: taskData.user_id ?? null, // Assigned member or null (unassigned)
+			project_id: taskData.project_id,
+			name: taskData.name,
+			effort_hours: taskData.effort_hours,
+			deadline: taskData.deadline,
+			status: taskData.status ?? 'pending'
+		})
+		.select('id')
+		.single();
+
+	return { data, error };
+}
+
+/**
+ * Get all tasks for a project with assignee information
+ */
+export async function getProjectTasks(
+	supabase: TypedSupabaseClient,
+	projectId: string
+): Promise<{ data: ProjectTaskWithAssignee[] | null; error: Error | null }> {
+	const { data: tasks, error } = await supabase
+		.from('tasks')
+		.select('id, name, effort_hours, deadline, status, project_id, created_at, user_id')
+		.eq('project_id', projectId)
+		.order('deadline', { ascending: true });
+
+	if (error || !tasks) {
+		return { data: null, error };
+	}
+
+	// Get unique assignee IDs (user_id for project tasks = assigned member)
+	const assigneeIds = [...new Set(tasks.filter((t) => t.user_id).map((t) => t.user_id!))];
+
+	if (assigneeIds.length === 0) {
+		return {
+			data: tasks.map((t) => ({
+				...t,
+				project_id: t.project_id!, // We know it's not null since we filtered by project_id
+				status: t.status as TaskStatus,
+				assignee: null
+			})),
+			error: null
+		};
+	}
+
+	// Get assignee details using RPC function
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC functions aren't typed
+	const { data: userDetails, error: userError } = (await (supabase as any).rpc(
+		'get_user_details_by_ids',
+		{ user_ids: assigneeIds }
+	)) as {
+		data: Array<{ id: string; email: string; name?: string }> | null;
+		error: Error | null;
+	};
+
+	if (userError) {
+		console.error('Error fetching assignee details:', userError);
+		// Return tasks without assignee details rather than failing
+		return {
+			data: tasks.map((t) => ({
+				...t,
+				project_id: t.project_id!, // We know it's not null since we filtered by project_id
+				status: t.status as TaskStatus,
+				assignee: null
+			})),
+			error: null
+		};
+	}
+
+	// Map assignee details to tasks
+	const tasksWithAssignees: ProjectTaskWithAssignee[] = tasks.map((task) => {
+		const assigneeDetail = task.user_id
+			? userDetails?.find((u) => u.id === task.user_id)
+			: null;
+		return {
+			...task,
+			project_id: task.project_id!, // We know it's not null since we filtered by project_id
+			status: task.status as TaskStatus,
+			assignee: assigneeDetail
+				? {
+						id: assigneeDetail.id,
+						name: assigneeDetail.name || assigneeDetail.email?.split('@')[0] || 'Unknown',
+						email: assigneeDetail.email
+					}
+				: null
+		};
+	});
+
+	return { data: tasksWithAssignees, error: null };
+}
+
+/**
+ * Update a project task's assignee (sets user_id)
+ * Validates that the assignee is a member of the project
+ */
+export async function updateProjectTaskAssignee(
+	supabase: TypedSupabaseClient,
+	taskId: string,
+	projectId: string,
+	assigneeId: string | null
+): Promise<{ error: Error | null }> {
+	// If assigning to someone, verify they are a project member
+	if (assigneeId) {
+		const { data: membership } = await supabase
+			.from('project_members')
+			.select('user_id')
+			.eq('project_id', projectId)
+			.eq('user_id', assigneeId)
+			.single();
+
+		if (!membership) {
+			return { error: new Error('User is not a member of this project') };
+		}
+	}
+
+	const { error } = await supabase
+		.from('tasks')
+		.update({ user_id: assigneeId })
+		.eq('id', taskId)
+		.eq('project_id', projectId);
+
+	return { error };
+}
+
+/**
+ * Update a project task (for project members)
+ */
+export async function updateProjectTask(
+	supabase: TypedSupabaseClient,
+	taskId: string,
+	projectId: string,
+	updates: TaskUpdateData
+): Promise<{ error: Error | null }> {
+	const { error } = await supabase
+		.from('tasks')
+		.update(updates)
+		.eq('id', taskId)
+		.eq('project_id', projectId);
+
+	return { error };
+}
+
+/**
+ * Delete a project task
+ */
+export async function deleteProjectTask(
+	supabase: TypedSupabaseClient,
+	taskId: string,
+	projectId: string
+): Promise<{ error: Error | null }> {
+	const { error } = await supabase
+		.from('tasks')
+		.delete()
+		.eq('id', taskId)
+		.eq('project_id', projectId);
 
 	return { error };
 }
