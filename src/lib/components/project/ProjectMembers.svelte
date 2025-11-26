@@ -1,4 +1,5 @@
 <script lang="ts">
+import { enhance } from '$app/forms';
 	type Member = {
 		id: string;
 		name: string;
@@ -120,21 +121,39 @@
 						Profile
 					</button>
 					{#if member.role !== 'Owner'}
-						<!-- TODO: Connect Remove button to delete member from project and handle API call -->
-						<button
-							type="button"
-							class="inline-flex items-center justify-center rounded-lg bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-red-50 hover:text-red-600"
-							title="Remove member"
+						<form 
+							method="POST" 
+							action="?/removeMember" 
+							use:enhance={() => {
+								return async ({ update }) => {
+									await update(); // Opdaterer data på siden automatisk efter sletning
+								};
+							}}
+							class="inline" 
 						>
-							<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M6 18L18 6M6 6l12 12"
-								/>
-							</svg>
-						</button>
+							<input type="hidden" name="user_id" value={member.id} />
+							
+							<button
+								type="submit"
+								class="inline-flex items-center justify-center rounded-lg bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-red-50 hover:text-red-600"
+								title="Remove member"
+								onclick={(e) => {
+									// Bekræftelse så man ikke sletter ved en fejl
+									if (!confirm(`Are you sure you want to remove ${member.name} from the project?`)) {
+										e.preventDefault();
+									}
+								}}
+							>
+								<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M6 18L18 6M6 6l12 12"
+									/>
+								</svg>
+							</button>
+						</form>
 					{/if}
 				</div>
 			</div>
