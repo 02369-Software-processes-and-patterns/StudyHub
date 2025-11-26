@@ -200,13 +200,14 @@
 				{#if sortedProjects.length > 0}
 					{#each sortedProjects as project (project.id)}
 <tr
-                            class="transition hover:bg-gray-50 {getRowClass(project)}"
+                            class="cursor-pointer transition hover:bg-gray-50 {getRowClass(project)}"
+                            on:click={() => handleRowClick(project.id)}
+                            tabindex="0"
+                            role="button"
+                            aria-label={'View project ' + project.name}
                         >
                         	<td 
-                                class="cursor-pointer px-2 py-2 text-xs sm:px-4 md:px-6 md:py-4"
-                                on:click={() => handleRowClick(project.id)}
-                                tabindex="0"
-                                aria-label={'View project ' + project.name}
+                                class="px-2 py-2 text-xs sm:px-4 md:px-6 md:py-4"
                             >
                                 <div class="font-semibold text-gray-900 sm:text-sm">
                                     {project.name}
@@ -249,22 +250,21 @@
 							>
 								{fmtDate(project.created_at)}
 							</td>
-							<td class="px-2 py-2 text-right text-xs sm:px-4 md:px-6 md:py-4">
+							<td class="px-2 py-2 text-right text-xs sm:px-4 md:px-6 md:py-4" on:click|stopPropagation>
                                 {#if project.role !== 'Owner'}
                                     <form
                                         method="POST"
                                         action="/project/{project.id}?/leaveProject"
-                                        use:enhance={() => {
+                                        use:enhance={({ cancel }) => {
+                                            if (!confirm(`Are you sure you want to leave "${project.name}"?`)) {
+                                                cancel();
+                                                return;
+                                            }
                                             leavingProjectId = project.id;
                                             return async ({ update }) => {
                                                 await update();
                                                 leavingProjectId = null;
                                             };
-                                        }}
-                                        on:submit|preventDefault={(e) => {
-                                            if (confirm(`Are you sure you want to leave "${project.name}"?`)) {
-                                                e.currentTarget.submit();
-                                            }
                                         }}
                                     >
                                         <button
