@@ -11,7 +11,7 @@ import {
 	createProjectTask,
 	updateProjectTask,
 	updateProjectTaskAssignee,
-	deleteProjectTask
+	deleteProjectTask,
 	deleteProject
 } from '$lib/server/db';
 
@@ -300,6 +300,13 @@ export const actions: Actions = {
 
 		const deadline = formData.get('deadline');
 		if (deadline !== null) updates.deadline = deadline as string;
+
+		// Handle assignee update
+		const userId = formData.get('user_id');
+		if (userId !== null) {
+			const assigneeId = (userId as string).trim();
+			updates.user_id = assigneeId === '' ? null : assigneeId;
+		}
 
 		if (Object.keys(updates).length === 0) {
 			return fail(400, { error: 'No updates provided.' });
