@@ -13,6 +13,7 @@
 		deadline?: string | null;
 		effort_hours?: number | null;
 		course?: CourseRef | null;
+		priority?: number | null;
 	};
 
 	export let tasks: Task[] = [];
@@ -79,10 +80,12 @@
 
 	type StatusFilter = TaskStatus | 'all';
 	type CourseFilter = 'all' | string;
+	type PriorityFilter = 'all' | '1' | '2' | '3';
 
 	let nameQuery = '';
 	let statusFilter: StatusFilter = 'all';
 	let courseFilter: CourseFilter = 'all';
+	let priorityFilter: PriorityFilter = 'all';
 	let deadlineFrom: string = '';
 	let deadlineTo: string = '';
 
@@ -101,6 +104,12 @@
 	// Remove "completed" from dropdown
 	const statusOptionsNoCompleted = statusOptions.filter((o) => o.value !== 'completed');
 
+	const priorityOptions = [
+		{ value: '1', label: 'High Priority' },
+		{ value: '2', label: 'Medium Priority' },
+		{ value: '3', label: 'Low Priority' }
+	];
+
 	// Build course options from tasks
 	$: courseOptions = Array.from(
 		new Map(tasks.filter((t) => t.course).map((t) => [t.course!.id, t.course!])).values()
@@ -111,6 +120,7 @@
 		nameQuery = '';
 		statusFilter = 'all';
 		courseFilter = 'all';
+		priorityFilter = 'all';
 		deadlineFrom = '';
 		deadlineTo = '';
 		effortSort = 'none';
@@ -131,6 +141,26 @@
 		} catch {
 			return value;
 		}
+	}
+
+	function getPriorityLabel(priority: number | null | undefined): string {
+		if (priority === null || priority === undefined) return 'None';
+		const labels: Record<number, string> = {
+			1: 'High',
+			2: 'Medium',
+			3: 'Low'
+		};
+		return labels[priority] || 'None';
+	}
+
+	function getPriorityColor(priority: number | null | undefined): string {
+		if (priority === null || priority === undefined) return 'bg-gray-100 text-gray-600';
+		const colors: Record<number, string> = {
+			1: 'bg-red-100 text-red-700',
+			2: 'bg-orange-100 text-orange-700',
+			3: 'bg-yellow-100 text-yellow-700'
+		};
+		return colors[priority] || 'bg-gray-100 text-gray-600';
 	}
 
 	function isOverdue(deadline?: string | null) {
@@ -167,7 +197,7 @@
 		return true;
 	}
 
-	// 1) Filter
+	// Filter tasks
 	$: filteredTasks = tasks.filter((task) => {
 		const matchesName = nameQuery
 			? task.name.toLowerCase().includes(nameQuery.trim().toLowerCase())
@@ -175,11 +205,15 @@
 		const matchesStatus = statusFilter === 'all' ? true : task.status === statusFilter;
 		const matchesCourse =
 			courseFilter === 'all' ? true : task.course && String(task.course.id) === courseFilter;
+		const matchesPriority =
+			priorityFilter === 'all'
+				? true
+				: task.priority !== null && String(task.priority) === priorityFilter;
 		const matchesDeadline = withinDateRange(task.deadline ?? null);
-		return matchesName && matchesStatus && matchesCourse && matchesDeadline;
+		return matchesName && matchesStatus && matchesCourse && matchesPriority && matchesDeadline;
 	});
 
-	// 2) Sort with memoized timestamps (skip sorting if preserveOrder is true)
+	// Sort tasks
 	$: sortedTasks = (() => {
 		// When preserveOrder is true, respect the original order of tasks
 		if (preserveOrder) {
@@ -254,6 +288,17 @@
 					{/each}
 				</select>
 
+				<select
+					bind:value={priorityFilter}
+					class="rounded-md border border-gray-300 bg-white px-2 py-1 pr-8 text-xs focus:border-violet-500 focus:ring-violet-500 sm:text-sm"
+					aria-label="Filter by priority"
+				>
+					<option value="all">Priority</option>
+					{#each priorityOptions as opt (opt.value)}
+						<option value={opt.value}>{opt.label}</option>
+					{/each}
+				</select>
+
 				<div class="flex items-center gap-1">
 					<input
 						type="date"
@@ -297,6 +342,10 @@
 				<tr>
 					<th
 						class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3"
+						>Priority</th
+					>
+					<th
+						class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3"
 						>Task</th
 					>
 					<th
@@ -337,6 +386,17 @@
 								openEdit(task);
 							}}
 						>
+							<!-- Priority -->
+							<td class="px-2 py-2 text-xs sm:px-4 md:px-6 md:py-4">
+								<span
+									class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {getPriorityColor(
+										task.priority
+									)}"
+								>
+									{getPriorityLabel(task.priority)}
+								</span>
+							</td>
+
 							<!-- Task name -->
 							<td class="px-2 py-2 text-xs sm:px-4 md:px-6 md:py-4">
 								<div class="font-semibold text-gray-900 sm:text-sm">
@@ -374,6 +434,7 @@
 								</div>
 							</td>
 
+							<!-- Deadline -->
 							<td
 								class="hidden px-2 py-2 text-xs sm:px-4 sm:text-sm md:table-cell md:px-6 md:py-4 {getDeadlineClass(
 									task
@@ -383,6 +444,7 @@
 								{fmtDeadline(task.deadline)}
 							</td>
 
+							<!-- Course -->
 							<td
 								class="hidden px-2 py-2 text-xs text-gray-700 sm:table-cell sm:px-4 sm:text-sm md:px-6 md:py-4"
 							>
@@ -430,14 +492,14 @@
 								{/if}
 							</td>
 
-							<!-- TIME -->
+							<!-- Time -->
 							<td
 								class="hidden px-2 py-2 text-xs text-gray-700 sm:px-4 sm:text-sm md:px-6 md:py-4 lg:table-cell"
 							>
 								{task.effort_hours != null ? `${task.effort_hours} h` : '-'}
 							</td>
 
-							<!-- DONE checkmark icon -->
+							<!-- Done checkmark -->
 							<td class="px-2 py-2 text-xs sm:px-4 md:px-6 md:py-4">
 								<form
 									method="POST"
