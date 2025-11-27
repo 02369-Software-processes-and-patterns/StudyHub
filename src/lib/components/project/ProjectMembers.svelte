@@ -4,6 +4,7 @@
 		id: string;
 		name: string;
 		email: string;
+		phone?: string;
 		role: 'Owner' | 'Admin' | 'Member';
 	};
 
@@ -30,6 +31,20 @@
 
 	// Only Owner and Admin can remove members
 	let canRemoveMembers = $derived(userRole === 'Owner' || userRole === 'Admin');
+
+	// Profile modal state
+	let showProfileModal = $state(false);
+	let selectedMember = $state<Member | null>(null);
+
+	function openProfileModal(member: Member) {
+		selectedMember = member;
+		showProfileModal = true;
+	}
+
+	function closeProfileModal() {
+		showProfileModal = false;
+		selectedMember = null;
+	}
 
 	function getInitials(name: string): string {
 		const parts = name.trim().split(' ');
@@ -124,11 +139,11 @@
 
 				<!-- Action Buttons -->
 				<div class="mt-4 flex gap-2 border-t border-gray-100 pt-3">
-					<!-- TODO: Connect Profile button to view member profile details -->
 					<button
 						type="button"
 						class="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-100"
 						title="View profile"
+						onclick={() => openProfileModal(member)}
 					>
 						<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path
@@ -321,5 +336,130 @@
 		</div>
 		<h3 class="mb-2 text-lg font-semibold text-gray-900">No team members yet</h3>
 		<p class="mb-4 text-gray-500">Start building your team by inviting members to this project</p>
+	</div>
+{/if}
+
+<!-- Profile Modal -->
+{#if showProfileModal && selectedMember}
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+		onclick={closeProfileModal}
+		onkeydown={(e) => e.key === 'Escape' && closeProfileModal()}
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="profile-modal-title"
+		tabindex="-1"
+	>
+		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<div
+			class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+			onclick={(e) => e.stopPropagation()}
+			role="document"
+		>
+			<!-- Header -->
+			<div class="mb-6 flex items-center justify-between">
+				<h2 id="profile-modal-title" class="text-xl font-bold text-gray-900">Member Profile</h2>
+				<button
+					type="button"
+					class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+					onclick={closeProfileModal}
+					aria-label="Close modal"
+				>
+					<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M6 18L18 6M6 6l12 12"
+						/>
+					</svg>
+				</button>
+			</div>
+
+			<!-- Avatar and Name -->
+			<div class="mb-6 flex flex-col items-center">
+				<div
+					class="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br {getAvatarGradient(
+						members.findIndex((m) => m.id === selectedMember?.id)
+					)} text-2xl font-bold text-white shadow-lg ring-4 ring-white"
+				>
+					{getInitials(selectedMember.name)}
+				</div>
+				<h3 class="text-lg font-semibold text-gray-900">{selectedMember.name}</h3>
+				<span
+					class="mt-1 inline-flex items-center rounded-full border px-3 py-1 text-sm font-medium {getRoleBadgeClass(
+						selectedMember.role
+					)}"
+				>
+					{selectedMember.role}
+				</span>
+			</div>
+
+			<!-- Contact Information -->
+			<div class="space-y-4">
+				<!-- Email -->
+				<div class="flex items-center gap-3 rounded-lg bg-gray-50 p-4">
+					<div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-purple-100">
+						<svg class="h-5 w-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+							/>
+						</svg>
+					</div>
+					<div class="min-w-0 flex-1">
+						<p class="text-xs font-medium text-gray-500">Email</p>
+						<a
+							href="mailto:{selectedMember.email}"
+							class="truncate text-sm font-medium text-gray-900 hover:text-purple-600"
+						>
+							{selectedMember.email}
+						</a>
+					</div>
+				</div>
+
+				<!-- Phone -->
+				<div class="flex items-center gap-3 rounded-lg bg-gray-50 p-4">
+					<div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-green-100">
+						<svg class="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+							/>
+						</svg>
+					</div>
+					<div class="min-w-0 flex-1">
+						<p class="text-xs font-medium text-gray-500">Phone</p>
+						{#if selectedMember.phone}
+							<a
+								href="tel:{selectedMember.phone}"
+								class="text-sm font-medium text-gray-900 hover:text-green-600"
+							>
+								{selectedMember.phone}
+							</a>
+						{:else}
+							<span class="text-sm text-gray-400">Not provided</span>
+						{/if}
+					</div>
+				</div>
+			</div>
+
+			<!-- Close Button -->
+			<div class="mt-6">
+				<button
+					type="button"
+					class="w-full rounded-lg bg-gray-100 px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
+					onclick={closeProfileModal}
+				>
+					Close
+				</button>
+			</div>
+		</div>
 	</div>
 {/if}
