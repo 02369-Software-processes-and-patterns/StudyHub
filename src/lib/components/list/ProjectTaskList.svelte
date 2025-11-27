@@ -147,26 +147,6 @@
 		return '';
 	}
 
-	function getStatusBadgeClass(status: TaskStatus) {
-		switch (status) {
-			case 'completed':
-				return 'bg-green-100 text-green-700';
-			case 'working':
-				return 'bg-yellow-100 text-yellow-700';
-			case 'on-hold':
-				return 'bg-orange-100 text-orange-700';
-			case 'todo':
-				return 'bg-blue-100 text-blue-700';
-			case 'pending':
-			default:
-				return 'bg-gray-100 text-gray-700';
-		}
-	}
-
-	function getStatusLabel(status: TaskStatus) {
-		return statusOptions.find((o) => o.value === status)?.label ?? status;
-	}
-
 	function getInitials(name: string): string {
 		const parts = name.trim().split(' ');
 		if (parts.length >= 2) {
@@ -396,7 +376,9 @@
 				{#if sortedTasks.length > 0}
 					{#each sortedTasks as task (task.id)}
 						<tr
-							class="transition hover:bg-gray-50 {getRowClass(task)} {openEdit ? 'cursor-pointer' : ''}"
+							class="transition hover:bg-gray-50 {getRowClass(task)} {openEdit
+								? 'cursor-pointer'
+								: ''}"
 							on:click={(e) => {
 								if (!openEdit) return;
 								const target = e.target as HTMLElement;
@@ -446,7 +428,7 @@
 							<td class="px-2 py-2 sm:px-4 md:px-6 md:py-4">
 								<div class="relative">
 									<select
-										class="w-full appearance-none rounded-lg border border-gray-200 bg-white py-2 pl-10 pr-8 text-xs text-gray-700 focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
+										class="w-full appearance-none rounded-lg border border-gray-200 bg-white py-2 pr-8 pl-10 text-xs text-gray-700 focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
 										value={task.assignee?.id ?? ''}
 										on:change={(e) => handleAssigneeChange(task.id, e.currentTarget.value)}
 										aria-label="Assign task to member"
@@ -460,7 +442,9 @@
 									<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2">
 										{#if task.assignee}
 											<div
-												class="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br {getAvatarGradient(task.assignee.id)} text-xs font-bold text-white"
+												class="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br {getAvatarGradient(
+													task.assignee.id
+												)} text-xs font-bold text-white"
 												title={task.assignee.name}
 											>
 												{getInitials(task.assignee.name)}
@@ -482,9 +466,21 @@
 										{/if}
 									</div>
 									<!-- Dropdown arrow -->
-									<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-										<svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+									<div
+										class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2"
+									>
+										<svg
+											class="h-4 w-4 text-gray-400"
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+										>
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M19 9l-7 7-7-7"
+											/>
 										</svg>
 									</div>
 								</div>
@@ -492,7 +488,9 @@
 
 							<!-- Deadline -->
 							<td
-								class="hidden px-2 py-2 text-xs sm:px-4 sm:text-sm md:table-cell md:px-6 md:py-4 {getDeadlineClass(task)}"
+								class="hidden px-2 py-2 text-xs sm:px-4 sm:text-sm md:table-cell md:px-6 md:py-4 {getDeadlineClass(
+									task
+								)}"
 								title={task.deadline}
 							>
 								{fmtDeadline(task.deadline)}
@@ -523,12 +521,12 @@
 												update({ reset: false })}
 									>
 										<input type="hidden" name="task_id" value={task.id} />
-									<select
-										name="status"
-										class="w-full truncate rounded-md border-gray-300 bg-white px-1.5 py-1 pr-7 text-xs focus:border-purple-500 focus:ring-purple-500 sm:px-2 sm:pr-8 sm:text-sm"
-										on:change={(e) => e.currentTarget.form?.requestSubmit()}
-										aria-label="Change task status"
-									>
+										<select
+											name="status"
+											class="w-full truncate rounded-md border-gray-300 bg-white px-1.5 py-1 pr-7 text-xs focus:border-purple-500 focus:ring-purple-500 sm:px-2 sm:pr-8 sm:text-sm"
+											on:change={(e) => e.currentTarget.form?.requestSubmit()}
+											aria-label="Change task status"
+										>
 											{#each statusOptionsNoCompleted as opt (opt.value)}
 												<option value={opt.value} selected={task.status === opt.value}>
 													{opt.label}
@@ -633,7 +631,7 @@
 					<tr>
 						<td colspan="7" class="px-6 py-12 text-center">
 							<div class="flex flex-col items-center">
-								<div class="rounded-full bg-purple-100 p-4 mb-4">
+								<div class="mb-4 rounded-full bg-purple-100 p-4">
 									<svg
 										class="h-8 w-8 text-purple-600"
 										fill="none"
@@ -648,8 +646,8 @@
 										/>
 									</svg>
 								</div>
-								<h3 class="text-lg font-semibold text-gray-900 mb-1">No tasks yet</h3>
-								<p class="text-sm text-gray-500 mb-4">Create your first task to get started</p>
+								<h3 class="mb-1 text-lg font-semibold text-gray-900">No tasks yet</h3>
+								<p class="mb-4 text-sm text-gray-500">Create your first task to get started</p>
 								{#if onAddTask}
 									<button
 										type="button"

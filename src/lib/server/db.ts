@@ -15,15 +15,15 @@ type TypedSupabaseClient = SupabaseClient<Database>;
 export type TaskStatus = 'pending' | 'todo' | 'on-hold' | 'working' | 'completed';
 
 export type TaskWithCourse = {
-    id: string;
-    name: string;
-    effort_hours: number;
-    deadline: string;
-    status: TaskStatus;
-    course_id: string | null;
-    created_at: string;
-    priority: number | null;
-    course: { id: string; name: string } | null;
+	id: string;
+	name: string;
+	effort_hours: number;
+	deadline: string;
+	status: TaskStatus;
+	course_id: string | null;
+	created_at: string;
+	priority: number | null;
+	course: { id: string; name: string } | null;
 };
 
 export type Course = {
@@ -44,17 +44,18 @@ export type TaskUpdateData = {
 	deadline?: string;
 	course_id?: string | null;
 	user_id?: string | null; // For assigning project tasks to members
+	priority?: number;
 };
 
 // For personal tasks (user_id set, project_id null)
 export type TaskCreateData = {
-    user_id: string;
-    name: string;
-    effort_hours: number;
-    deadline: string;
-    course_id?: string | null;
-    status?: TaskStatus;
-    priority?: number;
+	user_id: string;
+	name: string;
+	effort_hours: number;
+	deadline: string;
+	course_id?: string | null;
+	status?: TaskStatus;
+	priority?: number;
 };
 
 // For project tasks (project_id set, user_id is assigned member or null)
@@ -93,14 +94,14 @@ export type ProjectTaskWithAssignee = {
  * Fetch all tasks for a user with course information
  */
 export async function getTasksWithCourse(
-    supabase: TypedSupabaseClient,
-    userId: string,
-    orderBy: 'deadline' | 'created_at' = 'deadline'
+	supabase: TypedSupabaseClient,
+	userId: string,
+	orderBy: 'deadline' | 'created_at' = 'deadline'
 ): Promise<{ data: TaskWithCourse[] | null; error: Error | null }> {
-    const { data, error } = await supabase
-        .from('tasks')
-        .select(
-            `
+	const { data, error } = await supabase
+		.from('tasks')
+		.select(
+			`
             id,
             name,
             effort_hours,
@@ -111,11 +112,11 @@ export async function getTasksWithCourse(
             priority,
             course:courses(id, name)
         `
-        )
-        .eq('user_id', userId)
-        .order(orderBy, { ascending: orderBy === 'deadline' });
+		)
+		.eq('user_id', userId)
+		.order(orderBy, { ascending: orderBy === 'deadline' });
 
-    return { data: data as TaskWithCourse[] | null, error };
+	return { data: data as TaskWithCourse[] | null, error };
 }
 
 /**
@@ -220,9 +221,7 @@ export async function getProjectTasks(
 
 	// Map assignee details to tasks
 	const tasksWithAssignees: ProjectTaskWithAssignee[] = tasks.map((task) => {
-		const assigneeDetail = task.user_id
-			? userDetails?.find((u) => u.id === task.user_id)
-			: null;
+		const assigneeDetail = task.user_id ? userDetails?.find((u) => u.id === task.user_id) : null;
 		return {
 			...task,
 			project_id: task.project_id!, // We know it's not null since we filtered by project_id
@@ -519,124 +518,124 @@ export async function getAuthenticatedUser(
  * Parse and validate task update data from FormData
  */
 export function parseTaskUpdateForm(formData: FormData): {
-    taskId: string | null;
-    updates: TaskUpdateData;
-    error: string | null;
+	taskId: string | null;
+	updates: TaskUpdateData;
+	error: string | null;
 } {
-    const taskId = formData.get('task_id')?.toString() ?? null;
+	const taskId = formData.get('task_id')?.toString() ?? null;
 
-    if (!taskId) {
-        return { taskId: null, updates: {}, error: 'Missing task_id' };
-    }
+	if (!taskId) {
+		return { taskId: null, updates: {}, error: 'Missing task_id' };
+	}
 
-    const updates: TaskUpdateData = {};
-    const allowedStatuses: TaskStatus[] = ['pending', 'todo', 'on-hold', 'working', 'completed'];
+	const updates: TaskUpdateData = {};
+	const allowedStatuses: TaskStatus[] = ['pending', 'todo', 'on-hold', 'working', 'completed'];
 
-    // Parse status
-    if (formData.has('status')) {
-        const raw = formData.get('status')?.toString().toLowerCase();
-        if (!raw || !allowedStatuses.includes(raw as TaskStatus)) {
-            return { taskId, updates: {}, error: 'Invalid status value' };
-        }
-        updates.status = raw as TaskStatus;
-    }
+	// Parse status
+	if (formData.has('status')) {
+		const raw = formData.get('status')?.toString().toLowerCase();
+		if (!raw || !allowedStatuses.includes(raw as TaskStatus)) {
+			return { taskId, updates: {}, error: 'Invalid status value' };
+		}
+		updates.status = raw as TaskStatus;
+	}
 
-    // Parse name
-    if (formData.has('name')) {
-        const name = formData.get('name')?.toString()?.trim();
-        if (name) updates.name = name;
-    }
+	// Parse name
+	if (formData.has('name')) {
+		const name = formData.get('name')?.toString()?.trim();
+		if (name) updates.name = name;
+	}
 
-    // Parse effort_hours
-    if (formData.has('effort_hours')) {
-        const num = Number.parseFloat(formData.get('effort_hours')?.toString() ?? '');
-        if (!Number.isFinite(num) || num < 0) {
-            return { taskId, updates: {}, error: 'Invalid effort_hours' };
-        }
-        updates.effort_hours = Math.round(num);
-    }
+	// Parse effort_hours
+	if (formData.has('effort_hours')) {
+		const num = Number.parseFloat(formData.get('effort_hours')?.toString() ?? '');
+		if (!Number.isFinite(num) || num < 0) {
+			return { taskId, updates: {}, error: 'Invalid effort_hours' };
+		}
+		updates.effort_hours = Math.round(num);
+	}
 
-    // Parse deadline
-    if (formData.has('deadline')) {
-        const raw = formData.get('deadline')?.toString();
-        if (raw) {
-            const d = new Date(raw);
-            updates.deadline = isNaN(d.getTime()) ? raw : d.toISOString();
-        }
-    }
+	// Parse deadline
+	if (formData.has('deadline')) {
+		const raw = formData.get('deadline')?.toString();
+		if (raw) {
+			const d = new Date(raw);
+			updates.deadline = isNaN(d.getTime()) ? raw : d.toISOString();
+		}
+	}
 
-    // Parse course_id
-    if (formData.has('course_id')) {
-        const cid = formData.get('course_id')?.toString() || null;
-        updates.course_id = cid;
-    }
+	// Parse course_id
+	if (formData.has('course_id')) {
+		const cid = formData.get('course_id')?.toString() || null;
+		updates.course_id = cid;
+	}
 
-    // Parse priority
-    if (formData.has('priority')) {
-        const priorityStr = formData.get('priority')?.toString();
-        if (priorityStr) {
-            const priority = Number.parseInt(priorityStr);
-            if (!Number.isFinite(priority) || priority < 1 || priority > 3) {
-                return { taskId, updates: {}, error: 'Priority must be 1, 2, or 3' };
-            }
-            updates.priority = priority;
-        }
-    }
+	// Parse priority
+	if (formData.has('priority')) {
+		const priorityStr = formData.get('priority')?.toString();
+		if (priorityStr) {
+			const priority = Number.parseInt(priorityStr);
+			if (!Number.isFinite(priority) || priority < 1 || priority > 3) {
+				return { taskId, updates: {}, error: 'Priority must be 1, 2, or 3' };
+			}
+			updates.priority = priority;
+		}
+	}
 
-    if (Object.keys(updates).length === 0) {
-        return { taskId, updates: {}, error: 'No updatable fields provided' };
-    }
+	if (Object.keys(updates).length === 0) {
+		return { taskId, updates: {}, error: 'No updatable fields provided' };
+	}
 
-    return { taskId, updates, error: null };
+	return { taskId, updates, error: null };
 }
 
 /**
  * Parse and validate task creation data from FormData
  */
 export function parseTaskCreateForm(formData: FormData): {
-    data: Omit<TaskCreateData, 'user_id'> | null;
-    error: string | null;
+	data: Omit<TaskCreateData, 'user_id'> | null;
+	error: string | null;
 } {
-    const name = formData.get('name')?.toString()?.trim();
-    const effortStr = formData.get('effort_hours')?.toString();
-    const courseId = formData.get('course_id')?.toString() || null;
-    const deadlineRaw = formData.get('deadline')?.toString();
-    const priorityStr = formData.get('priority')?.toString();
+	const name = formData.get('name')?.toString()?.trim();
+	const effortStr = formData.get('effort_hours')?.toString();
+	const courseId = formData.get('course_id')?.toString() || null;
+	const deadlineRaw = formData.get('deadline')?.toString();
+	const priorityStr = formData.get('priority')?.toString();
 
-    if (!name) return { data: null, error: 'Missing name' };
-    if (!effortStr) return { data: null, error: 'Missing effort_hours' };
+	if (!name) return { data: null, error: 'Missing name' };
+	if (!effortStr) return { data: null, error: 'Missing effort_hours' };
 
-    let effortHours = Number.parseFloat(effortStr);
-    if (!Number.isFinite(effortHours) || effortHours < 0) {
-        return { data: null, error: 'effort_hours must be a non-negative number' };
-    }
-    effortHours = Math.round(effortHours);
+	let effortHours = Number.parseFloat(effortStr);
+	if (!Number.isFinite(effortHours) || effortHours < 0) {
+		return { data: null, error: 'effort_hours must be a non-negative number' };
+	}
+	effortHours = Math.round(effortHours);
 
-    let deadline: string = '';
-    if (deadlineRaw) {
-        const d = new Date(deadlineRaw);
-        deadline = isNaN(d.getTime()) ? deadlineRaw : d.toISOString();
-    }
+	let deadline: string = '';
+	if (deadlineRaw) {
+		const d = new Date(deadlineRaw);
+		deadline = isNaN(d.getTime()) ? deadlineRaw : d.toISOString();
+	}
 
-    let priority: number | undefined = undefined;
-    if (priorityStr) {
-        priority = Number.parseInt(priorityStr);
-        if (!Number.isFinite(priority) || priority < 1 || priority > 3) {
-            return { data: null, error: 'Priority must be 1, 2, or 3' };
-        }
-    }
+	let priority: number | undefined = undefined;
+	if (priorityStr) {
+		priority = Number.parseInt(priorityStr);
+		if (!Number.isFinite(priority) || priority < 1 || priority > 3) {
+			return { data: null, error: 'Priority must be 1, 2, or 3' };
+		}
+	}
 
-    return {
-        data: {
-            name,
-            effort_hours: effortHours,
-            course_id: courseId,
-            deadline,
-            status: 'pending',
-            priority
-        },
-        error: null
-    };
+	return {
+		data: {
+			name,
+			effort_hours: effortHours,
+			course_id: courseId,
+			deadline,
+			status: 'pending',
+			priority
+		},
+		error: null
+	};
 }
 
 // =============================================================================
@@ -1042,14 +1041,10 @@ export async function deleteProject(
 	supabase: TypedSupabaseClient,
 	projectId: string
 ): Promise<{ error: Error | null }> {
-	const { error } = await supabase
-		.from('projects')
-		.delete()
-		.eq('id', projectId);
+	const { error } = await supabase.from('projects').delete().eq('id', projectId);
 
 	return { error };
 }
-
 
 export type InvitationWithDetails = {
 	id: string;
@@ -1086,23 +1081,23 @@ export async function createInvitation(
 
 	const invitedUserId = userData[0].id;
 
-    // Tjek om brugeren allerede er medlem
-    const { data: existingMember } = await supabase
-        .from('project_members')
-        .select('id')
-        .eq('project_id', projectId)
-        .eq('user_id', invitedUserId)
-        .single();
-    
-    if (existingMember) {
-        return { error: new Error('User is already a member') };
-    }
+	// Tjek om brugeren allerede er medlem
+	const { data: existingMember } = await supabase
+		.from('project_members')
+		.select('id')
+		.eq('project_id', projectId)
+		.eq('user_id', invitedUserId)
+		.single();
+
+	if (existingMember) {
+		return { error: new Error('User is already a member') };
+	}
 
 	// 2. Indsæt i project_invitations tabellen
-    // RETTELSE HER: 'invitor_user_id' (med O) i stedet for 'inviter_user_id'
+	// RETTELSE HER: 'invitor_user_id' (med O) i stedet for 'inviter_user_id'
 	const { error } = await supabase.from('project_invitations').insert({
 		project_id: projectId,
-		invitor_user_id: inviterId, 
+		invitor_user_id: inviterId,
 		invited_user_id: invitedUserId,
 		status: 'pending',
 		role: role
@@ -1121,14 +1116,16 @@ export async function getMyInvitations(
 	// 1. Hent invitationerne
 	const { data, error } = await supabase
 		.from('project_invitations')
-		.select(`
+		.select(
+			`
 			id,
 			created_at,
 			status,
 			role,
 			invitor_user_id,
 			project:projects (name, description)
-		`)
+		`
+		)
 		.eq('invited_user_id', userId)
 		.eq('status', 'pending');
 
@@ -1136,8 +1133,8 @@ export async function getMyInvitations(
 
 	// 2. Find alle unikke ID'er på dem, der har inviteret
 	const inviterIds = [...new Set(data.map((i) => i.invitor_user_id))];
-	
-	let invitersMap: Record<string, { name: string; email: string }> = {};
+
+	const invitersMap: Record<string, { name: string; email: string }> = {};
 
 	// 3. Hent detaljer på invitererne (hvis der er nogen)
 	if (inviterIds.length > 0) {
@@ -1161,9 +1158,9 @@ export async function getMyInvitations(
 		role: invite.role || 'Member',
 		project: Array.isArray(invite.project) ? invite.project[0] : invite.project,
 		// Her indsætter vi nu de rigtige data:
-		inviter: invitersMap[invite.invitor_user_id] || { 
-			name: 'Ukendt bruger', 
-			email: 'Ingen email' 
+		inviter: invitersMap[invite.invitor_user_id] || {
+			name: 'Ukendt bruger',
+			email: 'Ingen email'
 		}
 	}));
 
@@ -1227,19 +1224,19 @@ export async function declineInvitation(
  * Uses RPC function to bypass RLS policies that prevent updating Owner rows
  */
 export async function transferProjectOwnership(
-    supabase: TypedSupabaseClient,
-    projectId: string,
-    currentOwnerId: string,
-    newOwnerId: string
+	supabase: TypedSupabaseClient,
+	projectId: string,
+	currentOwnerId: string,
+	newOwnerId: string
 ): Promise<{ error: Error | null }> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC functions aren't typed
-    const { error } = await (supabase as any).rpc('transfer_project_ownership', {
-        p_project_id: projectId,
-        p_current_owner_id: currentOwnerId,
-        p_new_owner_id: newOwnerId
-    });
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC functions aren't typed
+	const { error } = await (supabase as any).rpc('transfer_project_ownership', {
+		p_project_id: projectId,
+		p_current_owner_id: currentOwnerId,
+		p_new_owner_id: newOwnerId
+	});
 
-    return { error };
+	return { error };
 }
 
 export type PendingInvitation = {

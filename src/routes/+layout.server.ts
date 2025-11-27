@@ -12,7 +12,7 @@ export const load: LayoutServerLoad = async ({ locals: { safeGetSession, supabas
 			.select('*', { count: 'exact', head: true }) // 'head: true' betyder vi kun henter antallet, ikke data
 			.eq('invited_user_id', user.id)
 			.eq('status', 'pending');
-		
+
 		if (!error && count !== null) {
 			pendingInvitationsCount = count;
 		}

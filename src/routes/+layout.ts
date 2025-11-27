@@ -45,12 +45,11 @@ export const load: LayoutLoad = async ({ data, depends, fetch }) => {
 			expires_at: Math.floor(Date.now() / 1000) + 3600
 		};
 
-		
-		return { 
-			session, 
-			supabase, 
-			user, 
-			pendingInvitationsCount: data.pendingInvitationsCount ?? 0 
+		return {
+			session,
+			supabase,
+			user,
+			pendingInvitationsCount: data.pendingInvitationsCount ?? 0
 		};
 	}
 

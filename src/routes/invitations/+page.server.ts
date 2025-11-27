@@ -1,15 +1,20 @@
 import { fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
-import { getAuthenticatedUser, getMyInvitations, acceptInvitation, declineInvitation } from '$lib/server/db';
+import {
+	getAuthenticatedUser,
+	getMyInvitations,
+	acceptInvitation,
+	declineInvitation
+} from '$lib/server/db';
 
 export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 	const authResult = await getAuthenticatedUser(supabase);
-	
+
 	if (authResult.error) {
 		return { invitations: [] };
 	}
 
-    // Hent rigtige invitationer fra DB
+	// Hent rigtige invitationer fra DB
 	const { data } = await getMyInvitations(supabase, authResult.userId);
 
 	return { invitations: data || [] };
@@ -18,7 +23,7 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 export const actions: Actions = {
 	accept: async ({ request, locals: { supabase } }) => {
 		const authResult = await getAuthenticatedUser(supabase);
-        if (authResult.error) return fail(401);
+		if (authResult.error) return fail(401);
 
 		const formData = await request.formData();
 		const id = formData.get('id') as string;
@@ -31,7 +36,7 @@ export const actions: Actions = {
 
 	decline: async ({ request, locals: { supabase } }) => {
 		const authResult = await getAuthenticatedUser(supabase);
-        if (authResult.error) return fail(401);
+		if (authResult.error) return fail(401);
 
 		const formData = await request.formData();
 		const id = formData.get('id') as string;
