@@ -35,15 +35,28 @@
 	// Profile modal state
 	let showProfileModal = $state(false);
 	let selectedMember = $state<Member | null>(null);
+	let dialogElement = $state<HTMLDialogElement | null>(null);
 
 	function openProfileModal(member: Member) {
 		selectedMember = member;
 		showProfileModal = true;
+		// Use requestAnimationFrame to ensure the dialog is rendered before showing
+		requestAnimationFrame(() => {
+			dialogElement?.showModal();
+		});
 	}
 
 	function closeProfileModal() {
+		dialogElement?.close();
 		showProfileModal = false;
 		selectedMember = null;
+	}
+
+	function handleBackdropClick(e: MouseEvent) {
+		// Close if clicking on the backdrop (the dialog element itself, not its children)
+		if (e.target === dialogElement) {
+			closeProfileModal();
+		}
 	}
 
 	function getInitials(name: string): string {
@@ -341,23 +354,14 @@
 
 <!-- Profile Modal -->
 {#if showProfileModal && selectedMember}
-	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-		onclick={closeProfileModal}
-		onkeydown={(e) => e.key === 'Escape' && closeProfileModal()}
-		role="dialog"
-		aria-modal="true"
+	<dialog
+		bind:this={dialogElement}
+		class="m-auto max-w-md rounded-2xl bg-white p-0 shadow-xl backdrop:bg-black/50"
+		onclose={closeProfileModal}
+		onclick={handleBackdropClick}
 		aria-labelledby="profile-modal-title"
-		tabindex="-1"
 	>
-		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-		<!-- svelte-ignore a11y_click_events_have_key_events -->
-		<div
-			class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
-			onclick={(e) => e.stopPropagation()}
-			role="document"
-		>
+		<div class="p-6">
 			<!-- Header -->
 			<div class="mb-6 flex items-center justify-between">
 				<h2 id="profile-modal-title" class="text-xl font-bold text-gray-900">Member Profile</h2>
@@ -401,8 +405,15 @@
 			<div class="space-y-4">
 				<!-- Email -->
 				<div class="flex items-center gap-3 rounded-lg bg-gray-50 p-4">
-					<div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-purple-100">
-						<svg class="h-5 w-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<div
+						class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-purple-100"
+					>
+						<svg
+							class="h-5 w-5 text-purple-600"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
 							<path
 								stroke-linecap="round"
 								stroke-linejoin="round"
@@ -424,8 +435,15 @@
 
 				<!-- Phone -->
 				<div class="flex items-center gap-3 rounded-lg bg-gray-50 p-4">
-					<div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-green-100">
-						<svg class="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<div
+						class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-green-100"
+					>
+						<svg
+							class="h-5 w-5 text-green-600"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
 							<path
 								stroke-linecap="round"
 								stroke-linejoin="round"
@@ -461,5 +479,5 @@
 				</button>
 			</div>
 		</div>
-	</div>
+	</dialog>
 {/if}
