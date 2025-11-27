@@ -1,24 +1,44 @@
-import type { PageServerLoad } from './$types';
+import { fail } from '@sveltejs/kit';
+import type { PageServerLoad, Actions } from './$types';
+import { getAuthenticatedUser, getMyInvitations, acceptInvitation, declineInvitation } from '$lib/server/db';
 
-// Invitation type for when backend logic is implemented
-interface Invitation {
-	id: string;
-	project: { name: string; description?: string };
-	inviter: { name: string };
-	role: string;
-	created_at: string;
-}
-
-export const load: PageServerLoad = async ({ locals: { safeGetSession } }) => {
-	const { session } = await safeGetSession();
-
-	if (!session) {
-		return { invitations: [] as Invitation[] };
+export const load: PageServerLoad = async ({ locals: { supabase } }) => {
+	const authResult = await getAuthenticatedUser(supabase);
+	
+	if (authResult.error) {
+		return { invitations: [] };
 	}
 
-	// For now we return an empty array as we're only focusing on UI
-	// When backend logic is ready, we'll fetch from database
-	const invitations: Invitation[] = [];
+    // Hent rigtige invitationer fra DB
+	const { data } = await getMyInvitations(supabase, authResult.userId);
 
-	return { invitations };
+	return { invitations: data || [] };
+};
+
+export const actions: Actions = {
+	accept: async ({ request, locals: { supabase } }) => {
+		const authResult = await getAuthenticatedUser(supabase);
+        if (authResult.error) return fail(401);
+
+		const formData = await request.formData();
+		const id = formData.get('id') as string;
+
+		const { error } = await acceptInvitation(supabase, id, authResult.userId);
+
+		if (error) return fail(500, { error: error.message });
+		return { success: true };
+	},
+
+	decline: async ({ request, locals: { supabase } }) => {
+		const authResult = await getAuthenticatedUser(supabase);
+        if (authResult.error) return fail(401);
+
+		const formData = await request.formData();
+		const id = formData.get('id') as string;
+
+		const { error } = await declineInvitation(supabase, id, authResult.userId);
+
+		if (error) return fail(500, { error: error.message });
+		return { success: true };
+	}
 };

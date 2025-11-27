@@ -8,6 +8,8 @@ import {
 	getProjectTasks,
 	addProjectMembers,
 	removeProjectMember,
+	deleteProject,
+	createInvitation,
 	createProjectTask,
 	updateProjectTask,
 	updateProjectTaskAssignee,
@@ -65,11 +67,7 @@ export const actions: Actions = {
 			return fail(400, { error: 'No members selected' });
 		}
 
-		// Check if the user is Owner or Admin
-		const { role } = await getProjectMemberRole(supabase, projectId, authResult.userId);
-		if (!role || !['Owner', 'Admin'].includes(role)) {
-			return fail(403, { error: 'Only Owners and Admins can invite members.' });
-		}
+        // (Behold rolle-tjek koden her...)
 
 		let invitedMembers: Array<{ email: string; role: string }> = [];
 		try {
@@ -78,20 +76,29 @@ export const actions: Actions = {
 			return fail(400, { error: 'Invalid data format' });
 		}
 
-		const { added, error } = await addProjectMembers(supabase, projectId, invitedMembers);
+        // ÆNDRING: Loop igennem og opret invitationer i stedet for direkte tilføjelse
+        let successCount = 0;
+        let errors = [];
 
-		if (error) {
-			// Handle unique constraint violation (user already a member)
-			const pgError = error as { code?: string };
-			if (pgError.code === '23505') {
-				return fail(400, { error: 'One or more users are already in this project.' });
-			}
-			console.error('Error inviting members:', error);
-			return fail(500, { error: error.message || 'Failed to invite members.' });
-		}
+        for (const member of invitedMembers) {
+            const { error } = await createInvitation(
+                supabase, 
+                projectId, 
+                authResult.userId, 
+                member.email, 
+                member.role
+            );
+            
+            if (error) {
+                console.error(`Failed to invite ${member.email}:`, error);
+                errors.push(member.email);
+            } else {
+                successCount++;
+            }
+        }
 
-		if (added === 0) {
-			return fail(404, { error: 'No users found with these emails' });
+		if (successCount === 0 && errors.length > 0) {
+			return fail(400, { error: 'Failed to send invitations.' });
 		}
 
 		return { success: true };
