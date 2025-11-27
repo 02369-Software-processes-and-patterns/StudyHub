@@ -60,12 +60,13 @@ function validateTaskInput(input: TaskInput): ValidationResult {
 
 	// Validate priority
 	let priority: number | null = null;
-	if (input.priority) {
-		const priorityNum = Number.parseInt(input.priority, 10);
-		if (!Number.isFinite(priorityNum) || ![1, 2, 3].includes(priorityNum)) {
+	if (input.priority !== undefined) {
+		const priorityStr = input.priority;
+		// Must be an integer 1, 2, or 3 - no decimals, no non-numeric chars (leading zeros OK)
+		if (!priorityStr || !/^0*[1-3]$/.test(priorityStr)) {
 			errors.push('Priority must be 1, 2, or 3');
 		} else {
-			priority = priorityNum;
+			priority = Number.parseInt(priorityStr, 10);
 		}
 	}
 
