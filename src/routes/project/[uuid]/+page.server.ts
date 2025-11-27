@@ -14,29 +14,31 @@ import {
 	updateProjectTask,
 	updateProjectTaskAssignee,
 	deleteProjectTask,
-	deleteProject,
-  transferProjectOwnership
+	getPendingProjectInvitations,
+	cancelProjectInvitation,
+	transferProjectOwnership
 } from '$lib/server/db';
 
 export const load: PageServerLoad = async ({ params, locals: { supabase } }) => {
 	const authResult = await getAuthenticatedUser(supabase);
 	if (authResult.error) {
-		return { project: null, userRole: null, members: [], tasks: [], userId: null };
+		return { project: null, userRole: null, members: [], pendingInvitations: [], tasks: [], userId: null };
 	}
 
 	const { uuid } = params;
 
-	// Fetch project, user role, members, and tasks in parallel
-	const [projectResult, roleResult, membersResult, tasksResult] = await Promise.all([
+	// Fetch project, user role, members, pending invitations, and tasks in parallel
+	const [projectResult, roleResult, membersResult, pendingResult, tasksResult] = await Promise.all([
 		getProject(supabase, uuid),
 		getProjectMemberRole(supabase, uuid, authResult.userId),
 		getProjectMembers(supabase, uuid),
+		getPendingProjectInvitations(supabase, uuid),
 		getProjectTasks(supabase, uuid)
 	]);
 
 	if (projectResult.error) {
 		console.error('Error loading project:', projectResult.error);
-		return { project: null, userRole: null, members: [], tasks: [], userId: null };
+		return { project: null, userRole: null, members: [], pendingInvitations: [], tasks: [], userId: null };
 	}
 
 	if (tasksResult.error) {
@@ -47,6 +49,7 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
 		project: projectResult.data,
 		userRole: roleResult.role,
 		members: membersResult.data ?? [],
+		pendingInvitations: pendingResult.data ?? [],
 		tasks: tasksResult.data ?? [],
 		userId: authResult.userId
 	};
@@ -482,6 +485,38 @@ export const actions: Actions = {
 		if (error) {
 			console.error('Error deleting project task:', error);
 			return fail(500, { error: 'Failed to delete task.' });
+		}
+
+		return { success: true };
+	},
+
+	/** Cancel a pending invitation */
+	cancelInvitation: async ({ request, params, locals: { supabase } }) => {
+		const authResult = await getAuthenticatedUser(supabase);
+		if (authResult.error) {
+			return fail(authResult.error.status, { error: authResult.error.message });
+		}
+
+		const projectId = params.uuid;
+
+		// Verify user is Owner or Admin
+		const { role } = await getProjectMemberRole(supabase, projectId, authResult.userId);
+		if (role !== 'Owner' && role !== 'Admin') {
+			return fail(403, { error: 'Only Owners and Admins can cancel invitations.' });
+		}
+
+		const formData = await request.formData();
+		const invitationId = formData.get('invitation_id') as string;
+
+		if (!invitationId) {
+			return fail(400, { error: 'Invitation ID is required.' });
+		}
+
+		const { error } = await cancelProjectInvitation(supabase, invitationId, projectId);
+
+		if (error) {
+			console.error('Error canceling invitation:', error);
+			return fail(500, { error: 'Failed to cancel invitation.' });
 		}
 
 		return { success: true };

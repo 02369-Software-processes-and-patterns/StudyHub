@@ -6,6 +6,8 @@
 	const dispatch = createEventDispatcher();
 
 	export let isOpen = false;
+	export let existingMembers: Array<{ email: string }> = [];
+	export let pendingInvitations: Array<{ email: string }> = [];
 
 	let memberEmail = '';
 	let invitedMembers: Array<{ email: string; role: string; name?: string }> = [];
@@ -17,6 +19,13 @@
 	let successMessage = '';
 	let hasInvited = false; //  variabel til at spore om invitationen lykkedes
 	let searchTimeout: number;
+
+	// Combine all emails that should be excluded from search results
+	$: excludedEmails = new Set([
+		...existingMembers.map(m => m.email),
+		...pendingInvitations.map(p => p.email),
+		...invitedMembers.map(i => i.email)
+	]);
 
 	const memberRoles = [
 		{ label: 'Member', value: 'Member' },
@@ -36,8 +45,9 @@
 			if (response.ok) {
 				const data: { users?: Array<{ id: string; email: string; name?: string }> } =
 					await response.json();
+				// Filter out existing members, pending invitations, and already selected users
 				searchResults = (data.users || []).filter(
-					(user) => !invitedMembers.find((m) => m.email === user.email)
+					(user) => !excludedEmails.has(user.email)
 				);
 				showMemberDropdown = searchResults.length > 0;
 			}

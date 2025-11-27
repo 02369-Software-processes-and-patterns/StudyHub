@@ -1241,3 +1241,77 @@ export async function transferProjectOwnership(
 
     return { error };
 }
+
+export type PendingInvitation = {
+	id: string;
+	email: string;
+	name: string;
+	role: string;
+	created_at: string;
+};
+
+/**
+ * Cancel a pending invitation (for project owners/admins)
+ */
+export async function cancelProjectInvitation(
+	supabase: TypedSupabaseClient,
+	invitationId: string,
+	projectId: string
+): Promise<{ error: Error | null }> {
+	const { error } = await supabase
+		.from('project_invitations')
+		.delete()
+		.eq('id', invitationId)
+		.eq('project_id', projectId);
+
+	return { error };
+}
+
+/**
+ * Get pending invitations for a project
+ */
+export async function getPendingProjectInvitations(
+	supabase: TypedSupabaseClient,
+	projectId: string
+): Promise<{ data: PendingInvitation[] | null; error: Error | null }> {
+	// 1. Get pending invitations for this project
+	const { data: invitations, error: invError } = await supabase
+		.from('project_invitations')
+		.select('id, invited_user_id, role, created_at')
+		.eq('project_id', projectId)
+		.eq('status', 'pending');
+
+	if (invError || !invitations || invitations.length === 0) {
+		return { data: [], error: invError };
+	}
+
+	// 2. Get user details for invited users
+	const userIds = invitations.map((inv) => inv.invited_user_id);
+
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC functions aren't typed
+	const { data: userDetails, error: userError } = (await (supabase as any).rpc(
+		'get_user_details_by_ids',
+		{ user_ids: userIds }
+	)) as {
+		data: Array<{ id: string; email: string; name?: string }> | null;
+		error: Error | null;
+	};
+
+	if (userError) {
+		return { data: null, error: userError };
+	}
+
+	// 3. Map user details to invitations
+	const pendingInvitations: PendingInvitation[] = invitations.map((inv) => {
+		const userDetail = userDetails?.find((u) => u.id === inv.invited_user_id);
+		return {
+			id: inv.id,
+			email: userDetail?.email || 'N/A',
+			name: userDetail?.name || userDetail?.email?.split('@')[0] || 'Unknown User',
+			role: inv.role || 'Member',
+			created_at: inv.created_at
+		};
+	});
+
+	return { data: pendingInvitations, error: null };
+}
