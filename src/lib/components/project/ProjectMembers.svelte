@@ -1,5 +1,5 @@
 <script lang="ts">
-import { enhance } from '$app/forms';
+	import { enhance } from '$app/forms';
 	type Member = {
 		id: string;
 		name: string;
@@ -21,8 +21,13 @@ import { enhance } from '$app/forms';
 		currentUserId?: string;
 		userRole?: 'Owner' | 'Admin' | 'Member' | null;
 	};
-	let { members = [], pendingInvitations = [], currentUserId = '', userRole = null }: Props = $props();
-	
+	let {
+		members = [],
+		pendingInvitations = [],
+		currentUserId = '',
+		userRole = null
+	}: Props = $props();
+
 	// Only Owner and Admin can remove members
 	let canRemoveMembers = $derived(userRole === 'Owner' || userRole === 'Admin');
 
@@ -135,41 +140,43 @@ import { enhance } from '$app/forms';
 						</svg>
 						Profile
 					</button>
-				{#if canRemoveMembers && member.role !== 'Owner' && member.id !== currentUserId}
-					<form 
-						method="POST" 
-						action="?/removeMember" 
-						use:enhance={() => {
-							return async ({ update }) => {
-								await update(); // Opdaterer data på siden automatisk efter sletning
-							};
-						}}
-						class="inline" 
-					>
-						<input type="hidden" name="user_id" value={member.id} />
-						
-						<button
-							type="submit"
-							class="inline-flex items-center justify-center rounded-lg bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-red-50 hover:text-red-600"
-							title="Remove member"
-							onclick={(e) => {
-								// Bekræftelse så man ikke sletter ved en fejl
-								if (!confirm(`Are you sure you want to remove ${member.name} from the project?`)) {
-									e.preventDefault();
-								}
+					{#if canRemoveMembers && member.role !== 'Owner' && member.id !== currentUserId}
+						<form
+							method="POST"
+							action="?/removeMember"
+							use:enhance={() => {
+								return async ({ update }) => {
+									await update(); // Opdaterer data på siden automatisk efter sletning
+								};
 							}}
+							class="inline"
 						>
-							<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M6 18L18 6M6 6l12 12"
-								/>
-							</svg>
-						</button>
-					</form>
-				{/if}
+							<input type="hidden" name="user_id" value={member.id} />
+
+							<button
+								type="submit"
+								class="inline-flex items-center justify-center rounded-lg bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-red-50 hover:text-red-600"
+								title="Remove member"
+								onclick={(e) => {
+									// Bekræftelse så man ikke sletter ved en fejl
+									if (
+										!confirm(`Are you sure you want to remove ${member.name} from the project?`)
+									) {
+										e.preventDefault();
+									}
+								}}
+							>
+								<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M6 18L18 6M6 6l12 12"
+									/>
+								</svg>
+							</button>
+						</form>
+					{/if}
 				</div>
 			</div>
 		{/each}
@@ -181,12 +188,17 @@ import { enhance } from '$app/forms';
 	<div class="mt-6">
 		<h3 class="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-700">
 			<svg class="h-4 w-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+				/>
 			</svg>
 			Pending Invitations
 		</h3>
 		<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-			{#each pendingInvitations as invitation, index (invitation.id)}
+			{#each pendingInvitations as invitation (invitation.id)}
 				<div
 					class="group relative overflow-hidden rounded-xl border border-dashed border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50 p-4 transition-all hover:border-amber-400 hover:shadow-md"
 				>
@@ -202,15 +214,19 @@ import { enhance } from '$app/forms';
 					<!-- Avatar and Info -->
 					<div class="flex items-start gap-3">
 						<!-- Avatar with pending indicator -->
-						<div class="flex-shrink-0 relative">
+						<div class="relative flex-shrink-0">
 							<div
-								class="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-400 text-lg font-bold text-white shadow-md ring-2 ring-white opacity-70"
+								class="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-400 text-lg font-bold text-white opacity-70 shadow-md ring-2 ring-white"
 							>
 								{getInitials(invitation.name)}
 							</div>
-							<div class="absolute -bottom-1 -right-1 rounded-full bg-white p-0.5">
+							<div class="absolute -right-1 -bottom-1 rounded-full bg-white p-0.5">
 								<svg class="h-4 w-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
-									<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+									<path
+										fill-rule="evenodd"
+										d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+										clip-rule="evenodd"
+									/>
 								</svg>
 							</div>
 						</div>
@@ -245,24 +261,28 @@ import { enhance } from '$app/forms';
 					<!-- Action Buttons -->
 					{#if canRemoveMembers}
 						<div class="mt-4 flex gap-2 border-t border-amber-200 pt-3">
-							<form 
-								method="POST" 
-								action="?/cancelInvitation" 
+							<form
+								method="POST"
+								action="?/cancelInvitation"
 								use:enhance={() => {
 									return async ({ update }) => {
 										await update();
 									};
 								}}
-								class="flex-1" 
+								class="flex-1"
 							>
 								<input type="hidden" name="invitation_id" value={invitation.id} />
-								
+
 								<button
 									type="submit"
-									class="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-red-50 hover:text-red-600 border border-gray-200"
+									class="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-red-50 hover:text-red-600"
 									title="Cancel invitation"
 									onclick={(e) => {
-										if (!confirm(`Are you sure you want to cancel the invitation for ${invitation.name}?`)) {
+										if (
+											!confirm(
+												`Are you sure you want to cancel the invitation for ${invitation.name}?`
+											)
+										) {
 											e.preventDefault();
 										}
 									}}

@@ -26,8 +26,7 @@
 	let nameQuery = '';
 	let statusFilter: StatusFilter = 'all';
 	let courseFilter: CourseFilter = 'all';
-    let leavingProjectId: string | number | null = null;
-
+	let leavingProjectId: string | number | null = null;
 
 	const statusOptions = [
 		{ value: 'planning', label: 'Planning' },
@@ -190,38 +189,35 @@
 						>Created</th
 					>
 					<th
-                        class="px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3"
-                        ></th
-                    >
+						class="px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3"
+					></th>
 				</tr>
 			</thead>
 
 			<tbody class="divide-y divide-gray-200 bg-white">
 				{#if sortedProjects.length > 0}
 					{#each sortedProjects as project (project.id)}
-<tr
-                            class="cursor-pointer transition hover:bg-gray-50 {getRowClass(project)}"
-                            on:click={() => handleRowClick(project.id)}
-                            tabindex="0"
-                            role="button"
-                            aria-label={'View project ' + project.name}
-                        >
-                        	<td 
-                                class="px-2 py-2 text-xs sm:px-4 md:px-6 md:py-4"
-                            >
-                                <div class="font-semibold text-gray-900 sm:text-sm">
-                                    {project.name}
-                                </div>
-                                <div class="mt-1 line-clamp-2 text-xs text-gray-600">
-                                    {project.description}
-                                </div>
-                                <div class="mt-0.5 text-xs text-gray-500 sm:hidden">
-                                    {project.course?.name ?? ''}
-                                    {#if project.role}
-                                        • {project.role}
-                                    {/if}
-                                </div>
-                            </td>
+						<tr
+							class="cursor-pointer transition hover:bg-gray-50 {getRowClass(project)}"
+							on:click={() => handleRowClick(project.id)}
+							tabindex="0"
+							role="button"
+							aria-label={'View project ' + project.name}
+						>
+							<td class="px-2 py-2 text-xs sm:px-4 md:px-6 md:py-4">
+								<div class="font-semibold text-gray-900 sm:text-sm">
+									{project.name}
+								</div>
+								<div class="mt-1 line-clamp-2 text-xs text-gray-600">
+									{project.description}
+								</div>
+								<div class="mt-0.5 text-xs text-gray-500 sm:hidden">
+									{project.course?.name ?? ''}
+									{#if project.role}
+										• {project.role}
+									{/if}
+								</div>
+							</td>
 
 							<td
 								class="hidden px-2 py-2 text-xs text-gray-700 sm:table-cell sm:px-4 sm:text-sm md:px-6 md:py-4"
@@ -250,36 +246,39 @@
 							>
 								{fmtDate(project.created_at)}
 							</td>
-							<td class="px-2 py-2 text-right text-xs sm:px-4 md:px-6 md:py-4" on:click|stopPropagation>
-                                {#if project.role !== 'Owner'}
-                                    <form
-                                        method="POST"
-                                        action="/project/{project.id}?/leaveProject"
-                                        use:enhance={({ cancel }) => {
-                                            if (!confirm(`Are you sure you want to leave "${project.name}"?`)) {
-                                                cancel();
-                                                return;
-                                            }
-                                            leavingProjectId = project.id;
-                                            return async ({ update }) => {
-                                                await update();
-                                                leavingProjectId = null;
-                                            };
-                                        }}
-                                    >
-                                        <button
-                                            type="submit"
-                                            disabled={leavingProjectId === project.id}
-                                            class="rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-                                            title="Leave project"
-                                        >
-                                            {leavingProjectId === project.id ? 'Leaving...' : 'Leave'}
-                                        </button>
-                                    </form>
-                                {:else}
-                                    <span class="text-xs text-gray-400">-</span>
-                                {/if}
-                            </td>
+							<td
+								class="px-2 py-2 text-right text-xs sm:px-4 md:px-6 md:py-4"
+								on:click|stopPropagation
+							>
+								{#if project.role !== 'Owner'}
+									<form
+										method="POST"
+										action="/project/{project.id}?/leaveProject"
+										use:enhance={({ cancel }) => {
+											if (!confirm(`Are you sure you want to leave "${project.name}"?`)) {
+												cancel();
+												return;
+											}
+											leavingProjectId = project.id;
+											return async ({ update }) => {
+												await update();
+												leavingProjectId = null;
+											};
+										}}
+									>
+										<button
+											type="submit"
+											disabled={leavingProjectId === project.id}
+											class="rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+											title="Leave project"
+										>
+											{leavingProjectId === project.id ? 'Leaving...' : 'Leave'}
+										</button>
+									</form>
+								{:else}
+									<span class="text-xs text-gray-400">-</span>
+								{/if}
+							</td>
 						</tr>
 					{/each}
 				{:else}

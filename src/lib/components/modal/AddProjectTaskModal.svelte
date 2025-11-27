@@ -22,8 +22,8 @@
 
 	// Set default deadline to tomorrow
 	$: if (isOpen && !deadline) {
-		const tomorrow = new Date();
-		tomorrow.setDate(tomorrow.getDate() + 1);
+		const now = Date.now();
+		const tomorrow = new Date(now + 24 * 60 * 60 * 1000);
 		deadline = tomorrow.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:MM
 	}
 
@@ -43,9 +43,13 @@
 	function handleSubmit() {
 		isSubmitting = true;
 		errorMessage = '';
-		return async ({ result }: { result: { type: string; data?: { error?: string }; status?: number } }) => {
+		return async ({
+			result
+		}: {
+			result: { type: string; data?: { error?: string }; status?: number };
+		}) => {
 			isSubmitting = false;
-		
+
 			if (result.type === 'success') {
 				closeModal();
 				await invalidateAll();
@@ -86,7 +90,7 @@
 					bind:value={name}
 					required
 					placeholder="Enter task name..."
-					class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+					class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
 				/>
 			</div>
 
@@ -103,7 +107,7 @@
 					required
 					min="0.01"
 					step="any"
-					class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+					class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
 				/>
 			</div>
 
@@ -118,21 +122,19 @@
 					name="deadline"
 					bind:value={deadline}
 					required
-					class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+					class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
 				/>
 			</div>
 
 			<!-- Assign To -->
 			<div class="mb-6">
-				<label for="assigned-to" class="block text-sm font-medium text-gray-700">
-					Assign To
-				</label>
-			<select
-				id="assigned-to"
-				name="user_id"
-				bind:value={assignedTo}
-				class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 shadow-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
-			>
+				<label for="assigned-to" class="block text-sm font-medium text-gray-700"> Assign To </label>
+				<select
+					id="assigned-to"
+					name="user_id"
+					bind:value={assignedTo}
+					class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 shadow-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
+				>
 					<option value="">Unassigned</option>
 					{#each members as member (member.id)}
 						<option value={member.id}>{member.name}</option>
@@ -146,19 +148,30 @@
 				<button
 					type="button"
 					on:click={closeModal}
-					class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+					class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:outline-none"
 				>
 					Cancel
 				</button>
 				<button
 					type="submit"
 					disabled={isSubmitting || !name.trim() || !deadline}
-					class="inline-flex items-center rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+					class="inline-flex items-center rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 				>
 					{#if isSubmitting}
 						<svg class="mr-2 h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							></circle>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							></path>
 						</svg>
 						Creating...
 					{:else}

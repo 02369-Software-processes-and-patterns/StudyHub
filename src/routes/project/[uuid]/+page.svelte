@@ -29,9 +29,9 @@
 	export let data: PageData;
 
 	let project: PageData['project'] = data.project;
-    let userRole: PageData['userRole'] = data.userRole;
-    let members: NonNullable<PageData['members']> = data.members || [];
-	
+	let userRole: PageData['userRole'] = data.userRole;
+	let members: NonNullable<PageData['members']> = data.members || [];
+
 	// reactive variables updated when data changes
 	$: project = data.project;
 	$: userRole = data.userRole;
@@ -80,12 +80,12 @@
 		await invalidateAll();
 		showTransferModal = false;
 		alert('Ownership has been transferred successfully. You are now an Admin');
-  }
-    
+	}
+
 	function handleProjectUpdated() {
-        invalidateAll();
+		invalidateAll();
 		showEditProjectModal = false;
-    }
+	}
 
 	function openEditTask(task: Task) {
 		taskToEdit = task;
@@ -202,7 +202,8 @@
 							<h2 class="text-lg font-bold text-gray-900">Team Members</h2>
 							<p class="text-sm text-gray-500">
 								{members.length}
-								{members.length === 1 ? 'member' : 'members'}{#if pendingInvitations.length > 0}, {pendingInvitations.length} pending{/if}
+								{members.length === 1 ? 'member' : 'members'}{#if pendingInvitations.length > 0}, {pendingInvitations.length}
+									pending{/if}
 							</p>
 						</div>
 					</div>
@@ -241,7 +242,7 @@
 							>
 								<button
 									type="submit"
-									class="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 shadow-sm transition-colors hover:bg-red-100 hover:border-red-300"
+									class="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 shadow-sm transition-colors hover:border-red-300 hover:bg-red-100"
 									title="Delete Project Permanently"
 								>
 									<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -282,18 +283,23 @@
 								</button>
 							</form>
 						{/if}
-                        {#if canEdit}
-                            <button
-                                type="button"
-                                on:click={() => (showEditProjectModal = true)}
-                                class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
-                            >
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M4 13.5V19h5.5l9.621-9.621a1.5 1.5 0 00-2.121-2.121L4 13.5z" />
-                                </svg>
-                                Edit Project
-                            </button>
-                        {/if}
+						{#if canEdit}
+							<button
+								type="button"
+								on:click={() => (showEditProjectModal = true)}
+								class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+							>
+								<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M15.232 5.232l3.536 3.536M4 13.5V19h5.5l9.621-9.621a1.5 1.5 0 00-2.121-2.121L4 13.5z"
+									/>
+								</svg>
+								Edit Project
+							</button>
+						{/if}
 
 						{#if canInvite}
 							<button
@@ -317,13 +323,18 @@
 			</div>
 
 			<div class="p-6">
-				<ProjectMembers {members} {pendingInvitations} currentUserId={data.userId || ''} {userRole} />
+				<ProjectMembers
+					{members}
+					{pendingInvitations}
+					currentUserId={data.userId || ''}
+					{userRole}
+				/>
 			</div>
 		</div>
 
 		<!-- Task List - Full Width -->
 		<div class="mb-8">
-			<ProjectTaskList 
+			<ProjectTaskList
 				{tasks}
 				{members}
 				onAddTask={() => {
@@ -337,12 +348,7 @@
 		<div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg">
 			<div class="mb-4 flex items-center gap-3">
 				<div class="rounded-lg bg-blue-100 p-2">
-					<svg
-						class="h-5 w-5 text-blue-600"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-					>
+					<svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							stroke-linecap="round"
 							stroke-linejoin="round"
@@ -358,18 +364,28 @@
 	</div>
 {/if}
 
-<InviteMemberModal bind:isOpen={showInviteModal} existingMembers={members} {pendingInvitations} on:invited={handleInvited} />
+<InviteMemberModal
+	bind:isOpen={showInviteModal}
+	existingMembers={members}
+	{pendingInvitations}
+	on:invited={handleInvited}
+/>
 <TransferOwnershipModal
-    bind:isOpen={showTransferModal}
-    {members}
-    currentUserId={data.userId || ''}
-    on:transferred={handleTransferred} />
-                        
-<EditProjectModal bind:isOpen={showEditProjectModal} {project} on:projectUpdated={handleProjectUpdated} />
+	bind:isOpen={showTransferModal}
+	{members}
+	currentUserId={data.userId || ''}
+	on:transferred={handleTransferred}
+/>
+
+<EditProjectModal
+	bind:isOpen={showEditProjectModal}
+	{project}
+	on:projectUpdated={handleProjectUpdated}
+/>
 <AddProjectTaskModal bind:isOpen={showAddTaskModal} {members} />
-<EditProjectTaskModal 
-	bind:isOpen={showEditTaskModal} 
-	task={taskToEdit} 
-	{members} 
-	on:taskUpdated={() => invalidateAll()} 
+<EditProjectTaskModal
+	bind:isOpen={showEditTaskModal}
+	task={taskToEdit}
+	{members}
+	on:taskUpdated={() => invalidateAll()}
 />

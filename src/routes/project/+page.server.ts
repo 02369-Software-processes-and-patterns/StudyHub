@@ -5,7 +5,7 @@ import {
 	getCourseOptions,
 	getProjectsWithRole,
 	createProject,
-    createInvitation // Vi bruger denne i stedet for addProjectMembers
+	createInvitation // Vi bruger denne i stedet for addProjectMembers
 } from '$lib/server/db';
 
 export const load: PageServerLoad = async ({ locals: { supabase } }) => {
@@ -86,20 +86,20 @@ export const actions: Actions = {
 
 		// Send invitationer til de valgte medlemmer
 		if (invitedMembers.length > 0) {
-            for (const member of invitedMembers) {
-                const { error: inviteError } = await createInvitation(
-                    supabase,
-                    newProject.id,
-                    authResult.userId, // Dig (ejeren) er inviteren
-                    member.email,
-                    member.role
-                );
+			for (const member of invitedMembers) {
+				const { error: inviteError } = await createInvitation(
+					supabase,
+					newProject.id,
+					authResult.userId, // Dig (ejeren) er inviteren
+					member.email,
+					member.role
+				);
 
-                if (inviteError) {
-                    console.error(`Failed to invite ${member.email} during project creation:`, inviteError);
-                    // Vi fortsætter selvom en invitation fejler, da projektet ER oprettet
-                }
-            }
+				if (inviteError) {
+					console.error(`Failed to invite ${member.email} during project creation:`, inviteError);
+					// Vi fortsætter selvom en invitation fejler, da projektet ER oprettet
+				}
+			}
 		}
 
 		return { success: true };

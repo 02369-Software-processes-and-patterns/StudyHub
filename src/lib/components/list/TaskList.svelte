@@ -342,13 +342,34 @@
 		<table class="min-w-full divide-y divide-gray-200">
 			<thead class="bg-gray-50">
 				<tr>
-					<th class="w-16 px-2 py-2 text-left text-[10px] font-medium text-gray-500 uppercase sm:w-20 sm:px-3 sm:text-xs">Priority</th>
-					<th class="px-2 py-2 text-left text-[10px] font-medium text-gray-500 uppercase sm:px-3 sm:text-xs">Task</th>
-					<th class="hidden w-32 whitespace-nowrap px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase lg:table-cell">Deadline</th>
-					<th class="hidden w-28 px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase xl:table-cell">Course</th>
-					<th class="w-24 px-2 py-2 text-left text-[10px] font-medium text-gray-500 uppercase sm:w-32 sm:px-3 sm:text-xs">Status</th>
-					<th class="hidden w-16 px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase xl:table-cell">Time</th>
-					<th class="w-12 px-2 py-2 text-center text-[10px] font-medium text-gray-500 uppercase sm:w-14 sm:px-3 sm:text-xs">Done</th>
+					<th
+						class="w-16 px-2 py-2 text-left text-[10px] font-medium text-gray-500 uppercase sm:w-20 sm:px-3 sm:text-xs"
+						>Priority</th
+					>
+					<th
+						class="px-2 py-2 text-left text-[10px] font-medium text-gray-500 uppercase sm:px-3 sm:text-xs"
+						>Task</th
+					>
+					<th
+						class="hidden w-32 px-3 py-2 text-left text-xs font-medium whitespace-nowrap text-gray-500 uppercase lg:table-cell"
+						>Deadline</th
+					>
+					<th
+						class="hidden w-28 px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase xl:table-cell"
+						>Course</th
+					>
+					<th
+						class="w-24 px-2 py-2 text-left text-[10px] font-medium text-gray-500 uppercase sm:w-32 sm:px-3 sm:text-xs"
+						>Status</th
+					>
+					<th
+						class="hidden w-16 px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase xl:table-cell"
+						>Time</th
+					>
+					<th
+						class="w-12 px-2 py-2 text-center text-[10px] font-medium text-gray-500 uppercase sm:w-14 sm:px-3 sm:text-xs"
+						>Done</th
+					>
 					<th class="w-8 px-1 py-2 sm:w-10 sm:px-2"></th>
 				</tr>
 			</thead>
@@ -368,7 +389,9 @@
 							<!-- Priority -->
 							<td class="px-2 py-2 sm:px-3 sm:py-3">
 								<span
-									class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:px-2 sm:text-xs {getPriorityColor(task.priority)}"
+									class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:px-2 sm:text-xs {getPriorityColor(
+										task.priority
+									)}"
 								>
 									{getPriorityLabel(task.priority)}
 								</span>
@@ -413,7 +436,11 @@
 							</td>
 
 							<!-- Deadline -->
-							<td class="hidden whitespace-nowrap px-3 py-3 text-sm lg:table-cell {getDeadlineClass(task)}">
+							<td
+								class="hidden px-3 py-3 text-sm whitespace-nowrap lg:table-cell {getDeadlineClass(
+									task
+								)}"
+							>
 								{fmtDeadline(task.deadline)}
 							</td>
 
@@ -426,10 +453,20 @@
 							<td class="px-2 py-2 sm:px-3 sm:py-3">
 								{#if task.status === 'completed'}
 									<span
-										class="inline-flex items-center gap-0.5 whitespace-nowrap rounded-md bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700 sm:gap-1 sm:px-2 sm:py-1 sm:text-xs"
+										class="inline-flex items-center gap-0.5 rounded-md bg-green-100 px-1.5 py-0.5 text-[10px] font-medium whitespace-nowrap text-green-700 sm:gap-1 sm:px-2 sm:py-1 sm:text-xs"
 									>
-										<svg class="h-3 w-3 flex-shrink-0 sm:h-3.5 sm:w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+										<svg
+											class="h-3 w-3 flex-shrink-0 sm:h-3.5 sm:w-3.5"
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+										>
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M5 13l4 4L19 7"
+											/>
 										</svg>
 										Done
 									</span>
@@ -437,12 +474,14 @@
 									<form
 										method="POST"
 										action="?/updateTask"
-										use:enhance={() => ({ update }) => update({ reset: false })}
+										use:enhance={() =>
+											({ update }) =>
+												update({ reset: false })}
 									>
 										<input type="hidden" name="task_id" value={task.id} />
 										<select
 											name="status"
-											class="w-full rounded-md border-gray-300 bg-white py-1 pl-1.5 pr-6 text-xs focus:border-violet-500 focus:ring-violet-500 sm:py-1.5 sm:pl-2 sm:pr-7 sm:text-sm"
+											class="w-full rounded-md border-gray-300 bg-white py-1 pr-6 pl-1.5 text-xs focus:border-violet-500 focus:ring-violet-500 sm:py-1.5 sm:pr-7 sm:pl-2 sm:text-sm"
 											on:change={(e) => e.currentTarget.form?.requestSubmit()}
 											aria-label="Change task status"
 										>
@@ -466,7 +505,9 @@
 								<form
 									method="POST"
 									action="?/updateTask"
-									use:enhance={() => ({ update }) => update({ reset: false })}
+									use:enhance={() =>
+										({ update }) =>
+											update({ reset: false })}
 								>
 									<input type="hidden" name="task_id" value={task.id} />
 									<input
@@ -476,14 +517,27 @@
 									/>
 									<button
 										type="submit"
-										class="inline-flex h-6 w-6 items-center justify-center rounded-full transition-all duration-200 sm:h-7 sm:w-7 {task.status === 'completed'
+										class="inline-flex h-6 w-6 items-center justify-center rounded-full transition-all duration-200 sm:h-7 sm:w-7 {task.status ===
+										'completed'
 											? 'bg-green-500 text-white shadow-md hover:bg-green-600'
 											: 'border-2 border-gray-300 text-gray-400 hover:border-green-500 hover:text-green-500'}"
-										aria-label={task.status === 'completed' ? 'Mark as incomplete' : 'Mark as completed'}
+										aria-label={task.status === 'completed'
+											? 'Mark as incomplete'
+											: 'Mark as completed'}
 										title={task.status === 'completed' ? 'Mark as incomplete' : 'Mark as completed'}
 									>
-										<svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+										<svg
+											class="h-3.5 w-3.5 sm:h-4 sm:w-4"
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+										>
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2.5"
+												d="M5 13l4 4L19 7"
+											/>
 										</svg>
 									</button>
 								</form>
@@ -500,13 +554,33 @@
 									aria-label="Delete task"
 								>
 									{#if isDeleting[task.id]}
-										<svg class="h-3.5 w-3.5 animate-spin sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-											<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+										<svg
+											class="h-3.5 w-3.5 animate-spin sm:h-4 sm:w-4"
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+										>
+											<circle
+												class="opacity-25"
+												cx="12"
+												cy="12"
+												r="10"
+												stroke="currentColor"
+												stroke-width="4"
+											></circle>
+											<path
+												class="opacity-75"
+												fill="currentColor"
+												d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+											></path>
 										</svg>
 									{:else}
 										<svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="currentColor" viewBox="0 0 20 20">
-											<path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+											<path
+												fill-rule="evenodd"
+												d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+												clip-rule="evenodd"
+											/>
 										</svg>
 									{/if}
 								</button>

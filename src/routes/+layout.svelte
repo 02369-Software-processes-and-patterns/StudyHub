@@ -1,6 +1,5 @@
 <script>
 	import { invalidateAll } from '$app/navigation';
-	import { invalidate } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import Topbar from '$lib/components/layout/topbar.svelte';
 	import '../app.css';
@@ -23,8 +22,8 @@
 </script>
 
 <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-    <Topbar {session} {user} {pendingInvitationsCount} />
-    <main class="w-full">
-        {@render children()}
-    </main>
+	<Topbar {session} {user} {pendingInvitationsCount} />
+	<main class="w-full">
+		{@render children()}
+	</main>
 </div>

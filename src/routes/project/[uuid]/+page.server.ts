@@ -6,7 +6,6 @@ import {
 	getProjectMemberRole,
 	getProjectMembers,
 	getProjectTasks,
-	addProjectMembers,
 	removeProjectMember,
 	deleteProject,
 	createInvitation,
@@ -22,7 +21,14 @@ import {
 export const load: PageServerLoad = async ({ params, locals: { supabase } }) => {
 	const authResult = await getAuthenticatedUser(supabase);
 	if (authResult.error) {
-		return { project: null, userRole: null, members: [], pendingInvitations: [], tasks: [], userId: null };
+		return {
+			project: null,
+			userRole: null,
+			members: [],
+			pendingInvitations: [],
+			tasks: [],
+			userId: null
+		};
 	}
 
 	const { uuid } = params;
@@ -38,7 +44,14 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
 
 	if (projectResult.error) {
 		console.error('Error loading project:', projectResult.error);
-		return { project: null, userRole: null, members: [], pendingInvitations: [], tasks: [], userId: null };
+		return {
+			project: null,
+			userRole: null,
+			members: [],
+			pendingInvitations: [],
+			tasks: [],
+			userId: null
+		};
 	}
 
 	if (tasksResult.error) {
@@ -70,7 +83,7 @@ export const actions: Actions = {
 			return fail(400, { error: 'No members selected' });
 		}
 
-        // (Behold rolle-tjek koden her...)
+		// (Behold rolle-tjek koden her...)
 
 		let invitedMembers: Array<{ email: string; role: string }> = [];
 		try {
@@ -79,26 +92,26 @@ export const actions: Actions = {
 			return fail(400, { error: 'Invalid data format' });
 		}
 
-        // ÆNDRING: Loop igennem og opret invitationer i stedet for direkte tilføjelse
-        let successCount = 0;
-        let errors = [];
+		// ÆNDRING: Loop igennem og opret invitationer i stedet for direkte tilføjelse
+		let successCount = 0;
+		const errors = [];
 
-        for (const member of invitedMembers) {
-            const { error } = await createInvitation(
-                supabase, 
-                projectId, 
-                authResult.userId, 
-                member.email, 
-                member.role
-            );
-            
-            if (error) {
-                console.error(`Failed to invite ${member.email}:`, error);
-                errors.push(member.email);
-            } else {
-                successCount++;
-            }
-        }
+		for (const member of invitedMembers) {
+			const { error } = await createInvitation(
+				supabase,
+				projectId,
+				authResult.userId,
+				member.email,
+				member.role
+			);
+
+			if (error) {
+				console.error(`Failed to invite ${member.email}:`, error);
+				errors.push(member.email);
+			} else {
+				successCount++;
+			}
+		}
 
 		if (successCount === 0 && errors.length > 0) {
 			return fail(400, { error: 'Failed to send invitations.' });
@@ -135,93 +148,93 @@ export const actions: Actions = {
 
 		throw redirect(303, '/project');
 	},
-  
-  removeMember: async ({ request, params, locals: { supabase } }) => {
-        // 1. Tjek at man er logget ind
-        const authResult = await getAuthenticatedUser(supabase);
-        if (authResult.error) {
-            return fail(authResult.error.status, { error: authResult.error.message });
-        }
 
-        const projectId = params.uuid;
-        const adminUserId = authResult.userId; // Dig (den der udfører handlingen)
+	removeMember: async ({ request, params, locals: { supabase } }) => {
+		// 1. Tjek at man er logget ind
+		const authResult = await getAuthenticatedUser(supabase);
+		if (authResult.error) {
+			return fail(authResult.error.status, { error: authResult.error.message });
+		}
 
-        // 2. Hent data fra formularen
-        const formData = await request.formData();
-        const targetUserId = formData.get('user_id') as string; // Den der skal slettes
+		const projectId = params.uuid;
+		const adminUserId = authResult.userId; // Dig (den der udfører handlingen)
 
-        if (!targetUserId) {
-            return fail(400, { error: 'Missing user_id to remove' });
-        }
+		// 2. Hent data fra formularen
+		const formData = await request.formData();
+		const targetUserId = formData.get('user_id') as string; // Den der skal slettes
 
-        // 3. Tjek rettigheder: Er du Owner eller Admin?
-        const { role } = await getProjectMemberRole(supabase, projectId, adminUserId);
-        if (role !== 'Owner' && role !== 'Admin') {
-            return fail(403, { error: 'Only Owners and Admins can remove members.' });
-        }
+		if (!targetUserId) {
+			return fail(400, { error: 'Missing user_id to remove' });
+		}
 
-        // Sikkerhed: Man må ikke kunne slette sig selv via denne knap (brug 'Leave' knappen i stedet)
-        if (targetUserId === adminUserId) {
-            return fail(400, { error: 'Use the "Leave Project" button to remove yourself.' });
-        }
+		// 3. Tjek rettigheder: Er du Owner eller Admin?
+		const { role } = await getProjectMemberRole(supabase, projectId, adminUserId);
+		if (role !== 'Owner' && role !== 'Admin') {
+			return fail(403, { error: 'Only Owners and Admins can remove members.' });
+		}
 
-        // 4. Udfør sletningen ved hjælp af din funktion fra db.ts
-        const { error } = await removeProjectMember(supabase, projectId, targetUserId);
+		// Sikkerhed: Man må ikke kunne slette sig selv via denne knap (brug 'Leave' knappen i stedet)
+		if (targetUserId === adminUserId) {
+			return fail(400, { error: 'Use the "Leave Project" button to remove yourself.' });
+		}
 
-        if (error) {
-            console.error('Error removing member:', error);
-            return fail(500, { error: 'Failed to remove member.' });
-        }
+		// 4. Udfør sletningen ved hjælp af din funktion fra db.ts
+		const { error } = await removeProjectMember(supabase, projectId, targetUserId);
 
-        return { success: true };
-    },
+		if (error) {
+			console.error('Error removing member:', error);
+			return fail(500, { error: 'Failed to remove member.' });
+		}
+
+		return { success: true };
+	},
 
 	updateProject: async ({ request, params, locals: { supabase } }) => {
-        // Auth
-        const auth = await getAuthenticatedUser(supabase);
-        if (auth.error) return fail(auth.error.status, { error: auth.error.message });
+		// Auth
+		const auth = await getAuthenticatedUser(supabase);
+		if (auth.error) return fail(auth.error.status, { error: auth.error.message });
 
-        const projectId = params.uuid;
+		const projectId = params.uuid;
 
-        // Permission
-        const { role } = await getProjectMemberRole(supabase, projectId, auth.userId);
-        if (!role || !['Owner', 'Admin'].includes(role)) {
-            return fail(403, { error: 'Only Owners and Admins can update the project.' });
-        }
+		// Permission
+		const { role } = await getProjectMemberRole(supabase, projectId, auth.userId);
+		if (!role || !['Owner', 'Admin'].includes(role)) {
+			return fail(403, { error: 'Only Owners and Admins can update the project.' });
+		}
 
-        // Data
-        const form = await request.formData();
-        const name = (form.get('name') as string)?.trim();
-        const description = (form.get('description') as string | null)?.trim() || undefined;
-        const statusRaw = (form.get('status') as string | null) ?? null;
-        const course_id_raw = (form.get('course_id') as string | null) ?? null;
+		// Data
+		const form = await request.formData();
+		const name = (form.get('name') as string)?.trim();
+		const description = (form.get('description') as string | null)?.trim() || undefined;
+		const statusRaw = (form.get('status') as string | null) ?? null;
+		const course_id_raw = (form.get('course_id') as string | null) ?? null;
 
-        if (!name) return fail(400, { error: 'Name is required' });
+		if (!name) return fail(400, { error: 'Name is required' });
 
-        // Normalize status
-        const norm = (s?: string | null) => {
-            if (!s) return 'planning';
-            if (s === 'on-hold') return 'on-hold';
-            const allowed = ['planning', 'active', 'on-hold', 'completed'] as const;
-            return (allowed as readonly string[]).includes(s) ? s : 'planning';
-        };
+		// Normalize status
+		const norm = (s?: string | null) => {
+			if (!s) return 'planning';
+			if (s === 'on-hold') return 'on-hold';
+			const allowed = ['planning', 'active', 'on-hold', 'completed'] as const;
+			return (allowed as readonly string[]).includes(s) ? s : 'planning';
+		};
 
-        const { error } = await supabase
-            .from('projects')
-            .update({
-                name,
-                description,
-                status: norm(statusRaw),
-                course_id: course_id_raw || null
-            })
-            .eq('id', projectId);
+		const { error } = await supabase
+			.from('projects')
+			.update({
+				name,
+				description,
+				status: norm(statusRaw),
+				course_id: course_id_raw || null
+			})
+			.eq('id', projectId);
 
-        if (error) {
-            console.error('updateProject error:', error);
-            return fail(500, { error: error.message || 'Failed to update project.' });
-        }
+		if (error) {
+			console.error('updateProject error:', error);
+			return fail(500, { error: error.message || 'Failed to update project.' });
+		}
 
-        return { success: true };
+		return { success: true };
 	},
 
 	deleteProject: async ({ params, locals: { supabase } }) => {
@@ -251,37 +264,37 @@ export const actions: Actions = {
 	},
 
 	transferOwnership: async ({ params, request, locals: { supabase } }) => {
-        const authResult = await getAuthenticatedUser(supabase);
-        if (authResult.error) {
-            return fail(authResult.error.status, { error: authResult.error.message });
-        }
+		const authResult = await getAuthenticatedUser(supabase);
+		if (authResult.error) {
+			return fail(authResult.error.status, { error: authResult.error.message });
+		}
 
-        const formData = await request.formData();
-        const newOwnerId = formData.get('new_owner_id')?.toString();
+		const formData = await request.formData();
+		const newOwnerId = formData.get('new_owner_id')?.toString();
 
-        if (!newOwnerId) {
-            return fail(400, { error: 'New owner ID is required' });
-        }
+		if (!newOwnerId) {
+			return fail(400, { error: 'New owner ID is required' });
+		}
 
-        if (newOwnerId === authResult.userId) {
-            return fail(400, { error: 'You are already the owner' });
-        }
+		if (newOwnerId === authResult.userId) {
+			return fail(400, { error: 'You are already the owner' });
+		}
 
-        const { error } = await transferProjectOwnership(
-            supabase,
-            params.uuid,
-            authResult.userId,
-            newOwnerId
-        );
+		const { error } = await transferProjectOwnership(
+			supabase,
+			params.uuid,
+			authResult.userId,
+			newOwnerId
+		);
 
-        if (error) {
-            console.error('Error transferring ownership:', error);
-            return fail(500, { error: error.message });
-        }
+		if (error) {
+			console.error('Error transferring ownership:', error);
+			return fail(500, { error: error.message });
+		}
 
-        return { success: true, message: 'Ownership transferred successfully' };
-    },
-  
+		return { success: true, message: 'Ownership transferred successfully' };
+	},
+
 	/** Create a new task for this project */
 	createTask: async ({ request, params, locals: { supabase } }) => {
 		const authResult = await getAuthenticatedUser(supabase);
@@ -443,12 +456,7 @@ export const actions: Actions = {
 			return fail(400, { error: 'Task ID is required.' });
 		}
 
-		const { error } = await updateProjectTaskAssignee(
-			supabase,
-			taskId,
-			projectId,
-			assigneeId
-		);
+		const { error } = await updateProjectTaskAssignee(supabase, taskId, projectId, assigneeId);
 
 		if (error) {
 			console.error('Error assigning task:', error);

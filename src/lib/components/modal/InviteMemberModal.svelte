@@ -22,9 +22,9 @@
 
 	// Combine all emails that should be excluded from search results
 	$: excludedEmails = new Set([
-		...existingMembers.map(m => m.email),
-		...pendingInvitations.map(p => p.email),
-		...invitedMembers.map(i => i.email)
+		...existingMembers.map((m) => m.email),
+		...pendingInvitations.map((p) => p.email),
+		...invitedMembers.map((i) => i.email)
 	]);
 
 	const memberRoles = [
@@ -46,9 +46,7 @@
 				const data: { users?: Array<{ id: string; email: string; name?: string }> } =
 					await response.json();
 				// Filter out existing members, pending invitations, and already selected users
-				searchResults = (data.users || []).filter(
-					(user) => !excludedEmails.has(user.email)
-				);
+				searchResults = (data.users || []).filter((user) => !excludedEmails.has(user.email));
 				showMemberDropdown = searchResults.length > 0;
 			}
 		} catch (err) {
