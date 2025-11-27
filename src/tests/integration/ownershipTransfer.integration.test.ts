@@ -38,32 +38,44 @@ function createMockSupabase() {
 				return Promise.resolve({ data: { user: mockUser }, error: null });
 			})
 		},
-		from: vi.fn().mockImplementation((table: string) => ({
-			select: vi.fn().mockReturnValue({
-				eq: vi.fn().mockReturnValue({
-					single: vi.fn().mockImplementation(() => {
-						if (table === 'project_members') {
-							return Promise.resolve({
-								data: members.find((m) => m.user_id === mockUser.id) || null,
-								error: null
-							});
-						}
-						return Promise.resolve({ data: null, error: null });
-					})
+		from: vi.fn().mockImplementation((table: string) => {
+			// Create chainable object for select queries
+			const createSelectChain = () => {
+				const chain: Record<string, unknown> = {};
+				chain.eq = vi.fn().mockImplementation(() => chain);
+				chain.single = vi.fn().mockImplementation(() => {
+					if (table === 'project_members') {
+						const member = members.find((m) => m.user_id === mockUser.id);
+						return Promise.resolve({
+							data: member || null,
+							error: null
+						});
+					}
+					return Promise.resolve({ data: null, error: null });
+				});
+				return chain;
+			};
+
+			// Create chainable object for update queries - supports multiple .eq() calls
+			const createUpdateChain = () => {
+				const chain: Record<string, unknown> = {};
+				chain.eq = vi.fn().mockImplementation(() => chain);
+				// Make chain thenable (acts as a Promise when awaited)
+				chain.then = (resolve: (value: { error: Error | null }) => void) => {
+					resolve({ error: shouldFailUpdate ? new Error('Update failed') : null });
+				};
+				return chain;
+			};
+
+			return {
+				select: vi.fn().mockImplementation(() => createSelectChain()),
+				update: vi.fn().mockImplementation(() => createUpdateChain()),
+				insert: vi.fn().mockImplementation((data: Notification) => {
+					notifications.push(data);
+					return Promise.resolve({ error: null });
 				})
-			}),
-			update: vi.fn().mockImplementation((data: Partial<ProjectMember>) => ({
-				eq: vi.fn().mockReturnValue({
-					eq: vi.fn().mockResolvedValue({
-						error: shouldFailUpdate ? new Error('Update failed') : null
-					})
-				})
-			})),
-			insert: vi.fn().mockImplementation((data: Notification) => {
-				notifications.push(data);
-				return Promise.resolve({ error: null });
-			})
-		})),
+			};
+		}),
 		_setAuthFailure: (fail: boolean) => {
 			shouldFailAuth = fail;
 		},
