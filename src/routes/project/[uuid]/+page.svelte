@@ -36,6 +36,7 @@
 	$: project = data.project;
 	$: userRole = data.userRole;
 	$: members = data.members || [];
+	$: pendingInvitations = data.pendingInvitations || [];
 	$: serverTasks = data.tasks || [];
 
 	// Transform server tasks to match ProjectTaskList format
@@ -201,7 +202,7 @@
 							<h2 class="text-lg font-bold text-gray-900">Team Members</h2>
 							<p class="text-sm text-gray-500">
 								{members.length}
-								{members.length === 1 ? 'member' : 'members'}
+								{members.length === 1 ? 'member' : 'members'}{#if pendingInvitations.length > 0}, {pendingInvitations.length} pending{/if}
 							</p>
 						</div>
 					</div>
@@ -316,7 +317,7 @@
 			</div>
 
 			<div class="p-6">
-				<ProjectMembers {members} currentUserId={data.userId || ''} {userRole} />
+				<ProjectMembers {members} {pendingInvitations} currentUserId={data.userId || ''} {userRole} />
 			</div>
 		</div>
 
@@ -357,7 +358,7 @@
 	</div>
 {/if}
 
-<InviteMemberModal bind:isOpen={showInviteModal} on:invited={handleInvited} />
+<InviteMemberModal bind:isOpen={showInviteModal} existingMembers={members} {pendingInvitations} on:invited={handleInvited} />
 <TransferOwnershipModal
     bind:isOpen={showTransferModal}
     {members}
