@@ -659,6 +659,7 @@ export type ProjectMember = {
 	role: 'Owner' | 'Admin' | 'Member';
 	email: string;
 	name: string;
+	phone?: string;
 };
 
 export type ProjectWithRole = Project & {
@@ -796,14 +797,14 @@ export async function getProjectMembers(
 
 	const userIds = members.map((m) => m.user_id);
 
-	// Get user details using RPC function
+	// Get user details using RPC function with project_id to get phone number
 	// Using type assertion since RPC functions may not be typed in database.types.ts
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC functions aren't typed
 	const { data: userDetails, error: userError } = (await (supabase as any).rpc(
 		'get_user_details_by_ids',
-		{ user_ids: userIds }
+		{ user_ids: userIds, project_id: projectId }
 	)) as {
-		data: Array<{ id: string; email: string; name?: string }> | null;
+		data: Array<{ id: string; email: string; name?: string; phone?: string }> | null;
 		error: Error | null;
 	};
 
@@ -817,7 +818,8 @@ export async function getProjectMembers(
 			id: member.user_id,
 			role: member.role as 'Owner' | 'Admin' | 'Member',
 			email: userDetail?.email || 'N/A',
-			name: userDetail?.name || userDetail?.email?.split('@')[0] || 'Unknown User'
+			name: userDetail?.name || userDetail?.email?.split('@')[0] || 'Unknown User',
+			phone: userDetail?.phone || ''
 		};
 	});
 
