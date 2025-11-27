@@ -24,7 +24,7 @@
 		{ label: 'Planning', value: 'planning' },
 		{ label: 'In Progress', value: 'in_progress' },
 		{ label: 'Completed', value: 'completed' },
-		{ label: 'On Hold', value: 'on_hold' }
+		{ label: 'On Hold', value: 'on hold' }
 	];
 
 	const memberRoles = [
@@ -158,12 +158,12 @@
 
 		<label class="block">
 			<span class="font-medium text-gray-700">Related Course (Optional)</span>
-			<select
-				name="course_id"
-				bind:value={course_id}
-				disabled={loading}
-				class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 disabled:cursor-not-allowed disabled:bg-gray-100"
-			>
+		<select
+			name="course_id"
+			bind:value={course_id}
+			disabled={loading}
+			class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 pr-10 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 disabled:cursor-not-allowed disabled:bg-gray-100"
+		>
 				<option value="">No course selected</option>
 				{#each courses as course (course.id)}
 					<option value={course.id}>
@@ -175,12 +175,12 @@
 
 		<label class="block">
 			<span class="font-medium text-gray-700">Status</span>
-			<select
-				name="status"
-				bind:value={status}
-				disabled={loading}
-				class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 disabled:cursor-not-allowed disabled:bg-gray-100"
-			>
+		<select
+			name="status"
+			bind:value={status}
+			disabled={loading}
+			class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 pr-10 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 disabled:cursor-not-allowed disabled:bg-gray-100"
+		>
 				{#each statusOptions as option (option.value)}
 					<option value={option.value}>
 						{option.label}

@@ -13,6 +13,7 @@
 		deadline?: string | null;
 		effort_hours?: number | null;
 		course?: CourseRef | null;
+		priority?: number | null;
 	};
 
 	export let tasks: Task[] = [];
@@ -79,10 +80,12 @@
 
 	type StatusFilter = TaskStatus | 'all';
 	type CourseFilter = 'all' | string;
+	type PriorityFilter = 'all' | '1' | '2' | '3';
 
 	let nameQuery = '';
 	let statusFilter: StatusFilter = 'all';
 	let courseFilter: CourseFilter = 'all';
+	let priorityFilter: PriorityFilter = 'all';
 	let deadlineFrom: string = '';
 	let deadlineTo: string = '';
 
@@ -101,6 +104,12 @@
 	// Remove "completed" from dropdown
 	const statusOptionsNoCompleted = statusOptions.filter((o) => o.value !== 'completed');
 
+	const priorityOptions = [
+		{ value: '1', label: 'High Priority' },
+		{ value: '2', label: 'Medium Priority' },
+		{ value: '3', label: 'Low Priority' }
+	];
+
 	// Build course options from tasks
 	$: courseOptions = Array.from(
 		new Map(tasks.filter((t) => t.course).map((t) => [t.course!.id, t.course!])).values()
@@ -111,6 +120,7 @@
 		nameQuery = '';
 		statusFilter = 'all';
 		courseFilter = 'all';
+		priorityFilter = 'all';
 		deadlineFrom = '';
 		deadlineTo = '';
 		effortSort = 'none';
@@ -124,13 +134,35 @@
 		const d = new Date(value);
 		try {
 			return new Intl.DateTimeFormat('da-DK', {
-				dateStyle: 'medium',
-				timeStyle: 'short',
+				day: 'numeric',
+				month: 'short',
+				hour: '2-digit',
+				minute: '2-digit',
 				timeZone: 'Europe/Copenhagen'
 			}).format(d);
 		} catch {
 			return value;
 		}
+	}
+
+	function getPriorityLabel(priority: number | null | undefined): string {
+		if (priority === null || priority === undefined) return 'None';
+		const labels: Record<number, string> = {
+			1: 'High',
+			2: 'Medium',
+			3: 'Low'
+		};
+		return labels[priority] || 'None';
+	}
+
+	function getPriorityColor(priority: number | null | undefined): string {
+		if (priority === null || priority === undefined) return 'bg-gray-100 text-gray-600';
+		const colors: Record<number, string> = {
+			1: 'bg-red-100 text-red-700',
+			2: 'bg-orange-100 text-orange-700',
+			3: 'bg-yellow-100 text-yellow-700'
+		};
+		return colors[priority] || 'bg-gray-100 text-gray-600';
 	}
 
 	function isOverdue(deadline?: string | null) {
@@ -167,7 +199,7 @@
 		return true;
 	}
 
-	// 1) Filter
+	// Filter tasks
 	$: filteredTasks = tasks.filter((task) => {
 		const matchesName = nameQuery
 			? task.name.toLowerCase().includes(nameQuery.trim().toLowerCase())
@@ -175,11 +207,15 @@
 		const matchesStatus = statusFilter === 'all' ? true : task.status === statusFilter;
 		const matchesCourse =
 			courseFilter === 'all' ? true : task.course && String(task.course.id) === courseFilter;
+		const matchesPriority =
+			priorityFilter === 'all'
+				? true
+				: task.priority !== null && String(task.priority) === priorityFilter;
 		const matchesDeadline = withinDateRange(task.deadline ?? null);
-		return matchesName && matchesStatus && matchesCourse && matchesDeadline;
+		return matchesName && matchesStatus && matchesCourse && matchesPriority && matchesDeadline;
 	});
 
-	// 2) Sort with memoized timestamps (skip sorting if preserveOrder is true)
+	// Sort tasks
 	$: sortedTasks = (() => {
 		// When preserveOrder is true, respect the original order of tasks
 		if (preserveOrder) {
@@ -254,6 +290,17 @@
 					{/each}
 				</select>
 
+				<select
+					bind:value={priorityFilter}
+					class="rounded-md border border-gray-300 bg-white px-2 py-1 pr-8 text-xs focus:border-violet-500 focus:ring-violet-500 sm:text-sm"
+					aria-label="Filter by priority"
+				>
+					<option value="all">Priority</option>
+					{#each priorityOptions as opt (opt.value)}
+						<option value={opt.value}>{opt.label}</option>
+					{/each}
+				</select>
+
 				<div class="flex items-center gap-1">
 					<input
 						type="date"
@@ -295,33 +342,14 @@
 		<table class="min-w-full divide-y divide-gray-200">
 			<thead class="bg-gray-50">
 				<tr>
-					<th
-						class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3"
-						>Task</th
-					>
-					<th
-						class="hidden px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:table-cell md:px-6 md:py-3"
-						>Deadline</th
-					>
-					<th
-						class="hidden px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:table-cell sm:px-4 md:px-6 md:py-3"
-						>Course</th
-					>
-					<th
-						class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3"
-						>Status</th
-					>
-					<th
-						class="hidden px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3 lg:table-cell"
-						>Time</th
-					>
-					<th
-						class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3"
-						>Done</th
-					>
-					<th
-						class="w-10 px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase sm:px-4 md:px-6 md:py-3"
-					></th>
+					<th class="w-16 px-2 py-2 text-left text-[10px] font-medium text-gray-500 uppercase sm:w-20 sm:px-3 sm:text-xs">Priority</th>
+					<th class="px-2 py-2 text-left text-[10px] font-medium text-gray-500 uppercase sm:px-3 sm:text-xs">Task</th>
+					<th class="hidden w-32 whitespace-nowrap px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase lg:table-cell">Deadline</th>
+					<th class="hidden w-28 px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase xl:table-cell">Course</th>
+					<th class="w-24 px-2 py-2 text-left text-[10px] font-medium text-gray-500 uppercase sm:w-32 sm:px-3 sm:text-xs">Status</th>
+					<th class="hidden w-16 px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase xl:table-cell">Time</th>
+					<th class="w-12 px-2 py-2 text-center text-[10px] font-medium text-gray-500 uppercase sm:w-14 sm:px-3 sm:text-xs">Done</th>
+					<th class="w-8 px-1 py-2 sm:w-10 sm:px-2"></th>
 				</tr>
 			</thead>
 
@@ -337,9 +365,18 @@
 								openEdit(task);
 							}}
 						>
+							<!-- Priority -->
+							<td class="px-2 py-2 sm:px-3 sm:py-3">
+								<span
+									class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:px-2 sm:text-xs {getPriorityColor(task.priority)}"
+								>
+									{getPriorityLabel(task.priority)}
+								</span>
+							</td>
+
 							<!-- Task name -->
-							<td class="px-2 py-2 text-xs sm:px-4 md:px-6 md:py-4">
-								<div class="font-semibold text-gray-900 sm:text-sm">
+							<td class="px-2 py-2 sm:px-3 sm:py-3">
+								<div class="text-xs font-medium text-gray-900 sm:text-sm">
 									{#if isOverdueTask(task) && isWorkingTask(task)}
 										<span class="inline-flex items-center gap-1">
 											<span class="text-orange-600">⚠️</span>{task.name}
@@ -360,63 +397,52 @@
 										{task.name}
 									{/if}
 								</div>
-								<div
-									class="mt-0.5 text-xs md:hidden {getDeadlineClass(task)}"
-									title={task.deadline}
-								>
+								<!-- Show deadline on smaller screens when column is hidden -->
+								<div class="mt-0.5 text-[10px] sm:text-xs lg:hidden {getDeadlineClass(task)}">
 									{fmtDeadline(task.deadline)}
 								</div>
-								<div class="mt-0.5 text-xs text-gray-500 sm:hidden">
-									{task.course?.name ?? ''}
-									{#if task.effort_hours != null}
-										• {task.effort_hours}h
-									{/if}
-								</div>
+								<!-- Show course on smaller screens when column is hidden -->
+								{#if task.course?.name}
+									<div class="mt-0.5 text-[10px] text-gray-500 sm:text-xs xl:hidden">
+										{task.course.name}
+										{#if task.effort_hours != null}
+											<span class="xl:hidden"> • {task.effort_hours}h</span>
+										{/if}
+									</div>
+								{/if}
 							</td>
 
-							<td
-								class="hidden px-2 py-2 text-xs sm:px-4 sm:text-sm md:table-cell md:px-6 md:py-4 {getDeadlineClass(
-									task
-								)}"
-								title={task.deadline}
-							>
+							<!-- Deadline -->
+							<td class="hidden whitespace-nowrap px-3 py-3 text-sm lg:table-cell {getDeadlineClass(task)}">
 								{fmtDeadline(task.deadline)}
 							</td>
 
-							<td
-								class="hidden px-2 py-2 text-xs text-gray-700 sm:table-cell sm:px-4 sm:text-sm md:px-6 md:py-4"
-							>
+							<!-- Course -->
+							<td class="hidden px-3 py-3 text-sm text-gray-600 xl:table-cell">
 								{task.course?.name ?? '-'}
 							</td>
 
-							<!-- STATUS dropdown (hidden when completed) -->
-							<td class="px-2 py-2 text-xs sm:px-4 md:px-6 md:py-4">
+							<!-- STATUS dropdown -->
+							<td class="px-2 py-2 sm:px-3 sm:py-3">
 								{#if task.status === 'completed'}
 									<span
-										class="inline-flex items-center gap-1 rounded-md bg-green-100 px-2 py-1 text-xs font-medium text-green-700 sm:text-sm"
+										class="inline-flex items-center gap-0.5 whitespace-nowrap rounded-md bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700 sm:gap-1 sm:px-2 sm:py-1 sm:text-xs"
 									>
-										<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2"
-												d="M5 13l4 4L19 7"
-											/>
+										<svg class="h-3 w-3 flex-shrink-0 sm:h-3.5 sm:w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
 										</svg>
-										Completed
+										Done
 									</span>
 								{:else}
 									<form
 										method="POST"
 										action="?/updateTask"
-										use:enhance={() =>
-											({ update }) =>
-												update({ reset: false })}
+										use:enhance={() => ({ update }) => update({ reset: false })}
 									>
 										<input type="hidden" name="task_id" value={task.id} />
 										<select
 											name="status"
-											class="w-full rounded-md border-gray-300 bg-white px-1.5 py-1 text-xs focus:border-violet-500 focus:ring-violet-500 sm:px-2 sm:text-sm"
+											class="w-full rounded-md border-gray-300 bg-white py-1 pl-1.5 pr-6 text-xs focus:border-violet-500 focus:ring-violet-500 sm:py-1.5 sm:pl-2 sm:pr-7 sm:text-sm"
 											on:change={(e) => e.currentTarget.form?.requestSubmit()}
 											aria-label="Change task status"
 										>
@@ -430,21 +456,17 @@
 								{/if}
 							</td>
 
-							<!-- TIME -->
-							<td
-								class="hidden px-2 py-2 text-xs text-gray-700 sm:px-4 sm:text-sm md:px-6 md:py-4 lg:table-cell"
-							>
-								{task.effort_hours != null ? `${task.effort_hours} h` : '-'}
+							<!-- Time -->
+							<td class="hidden px-3 py-3 text-center text-sm text-gray-600 xl:table-cell">
+								{task.effort_hours != null ? `${task.effort_hours}h` : '-'}
 							</td>
 
-							<!-- DONE checkmark icon -->
-							<td class="px-2 py-2 text-xs sm:px-4 md:px-6 md:py-4">
+							<!-- Done checkmark -->
+							<td class="px-2 py-2 text-center sm:px-3 sm:py-3">
 								<form
 									method="POST"
 									action="?/updateTask"
-									use:enhance={() =>
-										({ update }) =>
-											update({ reset: false })}
+									use:enhance={() => ({ update }) => update({ reset: false })}
 								>
 									<input type="hidden" name="task_id" value={task.id} />
 									<input
@@ -452,68 +474,39 @@
 										name="status"
 										value={task.status === 'completed' ? UNCHECK_STATUS : 'completed'}
 									/>
-
 									<button
 										type="submit"
-										class="inline-flex h-7 w-7 items-center justify-center rounded-full transition-all duration-200 {task.status ===
-										'completed'
+										class="inline-flex h-6 w-6 items-center justify-center rounded-full transition-all duration-200 sm:h-7 sm:w-7 {task.status === 'completed'
 											? 'bg-green-500 text-white shadow-md hover:bg-green-600'
 											: 'border-2 border-gray-300 text-gray-400 hover:border-green-500 hover:text-green-500'}"
-										aria-label={task.status === 'completed'
-											? 'Mark as incomplete'
-											: 'Mark as completed'}
+										aria-label={task.status === 'completed' ? 'Mark as incomplete' : 'Mark as completed'}
 										title={task.status === 'completed' ? 'Mark as incomplete' : 'Mark as completed'}
 									>
-										<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2.5"
-												d="M5 13l4 4L19 7"
-											/>
+										<svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
 										</svg>
 									</button>
 								</form>
 							</td>
 
 							<!-- Delete button -->
-							<td class="px-2 py-2 text-center sm:px-4 md:px-6 md:py-4">
+							<td class="px-1 py-2 text-center sm:px-2 sm:py-3">
 								<button
 									type="button"
 									on:click={() => openDeleteModal(task)}
 									disabled={isDeleting[task.id]}
-									class="inline-flex h-6 w-6 items-center justify-center rounded text-red-600 transition hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+									class="inline-flex h-5 w-5 items-center justify-center rounded text-red-600 transition hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50 sm:h-6 sm:w-6"
 									title="Delete task"
 									aria-label="Delete task"
 								>
 									{#if isDeleting[task.id]}
-										<svg
-											class="h-4 w-4 animate-spin"
-											fill="none"
-											stroke="currentColor"
-											viewBox="0 0 24 24"
-										>
-											<circle
-												class="opacity-25"
-												cx="12"
-												cy="12"
-												r="10"
-												stroke="currentColor"
-												stroke-width="4"
-											></circle>
-											<path
-												class="opacity-75"
-												fill="currentColor"
-												d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-											></path>
+										<svg class="h-3.5 w-3.5 animate-spin sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+											<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 										</svg>
 									{:else}
-										<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-											<path
-												fill-rule="evenodd"
-												d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-												clip-rule="evenodd"
-											/>
+										<svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="currentColor" viewBox="0 0 20 20">
+											<path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
 										</svg>
 									{/if}
 								</button>
