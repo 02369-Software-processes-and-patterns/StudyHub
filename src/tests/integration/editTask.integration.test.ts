@@ -63,9 +63,7 @@ function createMockSupabaseClient() {
 						}
 
 						// Find task by id and user_id
-						const taskIndex = mockTasks.findIndex(
-							(t) => t.id === value && t.user_id === userId
-						);
+						const taskIndex = mockTasks.findIndex((t) => t.id === value && t.user_id === userId);
 
 						if (taskIndex === -1) {
 							return Promise.resolve({
@@ -167,17 +165,18 @@ async function updateTaskAction(
 			updates.course_id = cid;
 		}
 
-	// Parse priority
-	if (formData.has('priority')) {
-		const priorityStr = formData.get('priority')?.toString();
-		if (priorityStr !== undefined && priorityStr !== null) {
-			const priority = Number.parseInt(priorityStr);
-			if (!Number.isFinite(priority) || priority < 1 || priority > 3) {
-				return { success: false, error: 'Priority must be 1, 2, or 3' };
+		// Parse priority
+		if (formData.has('priority')) {
+			const priorityStr = formData.get('priority')?.toString();
+			if (priorityStr !== undefined && priorityStr !== null) {
+				const priority = Number.parseInt(priorityStr);
+				if (!Number.isFinite(priority) || priority < 1 || priority > 3) {
+					return { success: false, error: 'Priority must be 1, 2, or 3' };
+				}
+				updates.priority = priority;
 			}
-			updates.priority = priority;
 		}
-	}		if (Object.keys(updates).length === 0) {
+		if (Object.keys(updates).length === 0) {
 			return { success: false, error: 'No updatable fields provided' };
 		}
 
@@ -414,7 +413,14 @@ describe('Edit Task - Integration Tests', () => {
 
 			expect(result.success).toBe(true);
 			expect(result.updated).toEqual(
-				expect.arrayContaining(['name', 'effort_hours', 'course_id', 'deadline', 'status', 'priority'])
+				expect.arrayContaining([
+					'name',
+					'effort_hours',
+					'course_id',
+					'deadline',
+					'status',
+					'priority'
+				])
 			);
 
 			const tasks = mockSupabase._getTasks();

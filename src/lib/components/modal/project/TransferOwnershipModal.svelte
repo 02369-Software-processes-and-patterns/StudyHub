@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
-	import Modal from './Modal.svelte';
+	import Modal from '../Modal.svelte';
 	import type { ProjectMember } from '$lib/server/db';
 
 	export let isOpen = false;

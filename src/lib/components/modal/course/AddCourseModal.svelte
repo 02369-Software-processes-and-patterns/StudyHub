@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { createEventDispatcher } from 'svelte';
-	import Modal from './Modal.svelte';
+	import Modal from '../Modal.svelte';
+	import { ECTS_OPTIONS, WEEKDAYS, toggleWeekday } from '$lib/constants/course';
+	import type { FailureData } from '$lib/types';
 
 	const dispatch = createEventDispatcher();
 
-	export let showModal = false;
+	export let isOpen = false;
 
 	let name = '';
 	let ects_points = '';
@@ -15,33 +17,12 @@
 	let loading = false;
 	let error = '';
 
-	const ectsOptions = [
-		{ label: '2.5 ECTS', value: '2.5' },
-		{ label: '5 ECTS', value: '5' },
-		{ label: '7.5 ECTS', value: '7.5' },
-		{ label: '10 ECTS', value: '10' },
-		{ label: '15 ECTS', value: '15' },
-		{ label: '20 ECTS', value: '20' }
-	];
-
-	const weekdays = [
-		{ label: 'Mon', value: 1 },
-		{ label: 'Tue', value: 2 },
-		{ label: 'Wed', value: 3 },
-		{ label: 'Thu', value: 4 },
-		{ label: 'Fri', value: 5 }
-	];
-
-	function toggleWeekday(day: number) {
-		if (selectedWeekdays.includes(day)) {
-			selectedWeekdays = selectedWeekdays.filter((d) => d !== day);
-		} else {
-			selectedWeekdays = [...selectedWeekdays, day];
-		}
+	function handleToggleWeekday(day: number) {
+		selectedWeekdays = toggleWeekday(selectedWeekdays, day);
 	}
 
 	function closeModal() {
-		showModal = false;
+		isOpen = false;
 		name = '';
 		ects_points = '';
 		start_date = '';
@@ -51,7 +32,7 @@
 	}
 </script>
 
-<Modal bind:isOpen={showModal} title="Add New Course" on:close={closeModal}>
+<Modal bind:isOpen title="Add New Course" on:close={closeModal}>
 	{#if error}
 		<div class="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
 			Error: {error}
@@ -68,7 +49,6 @@
 					closeModal();
 					dispatch('courseAdded');
 				} else if (result.type === 'failure') {
-					type FailureData = { error?: string };
 					error = (result.data as FailureData | undefined)?.error || 'An error occurred';
 				}
 				loading = false;
@@ -101,7 +81,7 @@
 				class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 pr-10 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 disabled:cursor-not-allowed disabled:bg-gray-100"
 			>
 				<option value="">Select ECTS</option>
-				{#each ectsOptions as option (option.value)}
+				{#each ECTS_OPTIONS as option (option.value)}
 					<option value={option.value}>
 						{option.label}
 					</option>
@@ -136,14 +116,14 @@
 		<div>
 			<p class="mb-2 font-medium text-gray-700">Lecture days</p>
 			<div class="flex gap-2">
-				{#each weekdays as day (day.value)}
+				{#each WEEKDAYS as day (day.value)}
 					<label
 						class="flex cursor-pointer items-center gap-2 rounded-md border border-gray-300 px-3 py-2 transition hover:bg-gray-50"
 					>
 						<input
 							type="checkbox"
 							checked={selectedWeekdays.includes(day.value)}
-							on:change={() => toggleWeekday(day.value)}
+							on:change={() => handleToggleWeekday(day.value)}
 							disabled={loading}
 							class="rounded text-blue-600 focus:ring-blue-500"
 						/>

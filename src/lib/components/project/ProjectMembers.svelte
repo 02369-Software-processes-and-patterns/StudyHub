@@ -1,26 +1,12 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	type Member = {
-		id: string;
-		name: string;
-		email: string;
-		phone?: string;
-		role: 'Owner' | 'Admin' | 'Member';
-	};
-
-	type PendingInvitation = {
-		id: string;
-		email: string;
-		name: string;
-		role: string;
-		created_at: string;
-	};
+	import type { Member, MemberRole, PendingInvitationForList } from '$lib/types';
 
 	type Props = {
 		members?: Member[];
-		pendingInvitations?: PendingInvitation[];
+		pendingInvitations?: PendingInvitationForList[];
 		currentUserId?: string;
-		userRole?: 'Owner' | 'Admin' | 'Member' | null;
+		userRole?: MemberRole | null;
 	};
 	let {
 		members = [],
@@ -174,7 +160,7 @@
 							action="?/removeMember"
 							use:enhance={() => {
 								return async ({ update }) => {
-									await update(); // Opdaterer data på siden automatisk efter sletning
+									await update(); // Automatically updates page data after deletion
 								};
 							}}
 							class="inline"
@@ -186,7 +172,7 @@
 								class="inline-flex items-center justify-center rounded-lg bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-red-50 hover:text-red-600"
 								title="Remove member"
 								onclick={(e) => {
-									// Bekræftelse så man ikke sletter ved en fejl
+									// Confirmation to prevent accidental deletion
 									if (
 										!confirm(`Are you sure you want to remove ${member.name} from the project?`)
 									) {

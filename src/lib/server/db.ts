@@ -411,7 +411,7 @@ export async function getCourses(
 export async function getCourseOptions(
 	supabase: TypedSupabaseClient,
 	userId: string
-): Promise<{ data: { id: string; name: string }[] | null; error: Error | null }> {
+): Promise<{ data: { id: string | number; name: string }[] | null; error: Error | null }> {
 	const { data, error } = await supabase
 		.from('courses')
 		.select('id, name')
@@ -1095,8 +1095,8 @@ export async function createInvitation(
 		return { error: new Error('User is already a member') };
 	}
 
-	// 2. Indsæt i project_invitations tabellen
-	// RETTELSE HER: 'invitor_user_id' (med O) i stedet for 'inviter_user_id'
+	// 2. Insert into project_invitations table
+	// NOTE: Column name is 'invitor_user_id' (with O) not 'inviter_user_id'
 	const { error } = await supabase.from('project_invitations').insert({
 		project_id: projectId,
 		invitor_user_id: inviterId,
@@ -1109,13 +1109,13 @@ export async function createInvitation(
 }
 
 /**
- * Hent alle invitationer til den nuværende bruger
+ * Get all invitations for the current user
  */
 export async function getMyInvitations(
 	supabase: TypedSupabaseClient,
 	userId: string
 ): Promise<{ data: InvitationWithDetails[]; error: Error | null }> {
-	// 1. Hent invitationerne
+	// 1. Fetch the invitations
 	const { data, error } = await supabase
 		.from('project_invitations')
 		.select(
@@ -1133,14 +1133,14 @@ export async function getMyInvitations(
 
 	if (error || !data) return { data: [], error };
 
-	// 2. Find alle unikke ID'er på dem, der har inviteret
+	// 2. Find all unique IDs of inviters
 	const inviterIds = [...new Set(data.map((i) => i.invitor_user_id))];
 
 	const invitersMap: Record<string, { name: string; email: string }> = {};
 
-	// 3. Hent detaljer på invitererne (hvis der er nogen)
+	// 3. Fetch inviter details (if any exist)
 	if (inviterIds.length > 0) {
-		// Vi bruger 'any' cast fordi typen for RPC funktionen måske ikke er genereret endnu
+		// Using 'any' cast because the RPC function type may not be generated yet
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const { data: usersData } = await (supabase as any).rpc('get_inviter_details', {
 			inviter_ids: inviterIds
@@ -1153,16 +1153,16 @@ export async function getMyInvitations(
 		}
 	}
 
-	// 4. Sammensæt det hele
+	// 4. Combine everything
 	const invitations: InvitationWithDetails[] = data.map((invite) => ({
 		id: invite.id,
 		created_at: invite.created_at,
 		role: invite.role || 'Member',
 		project: Array.isArray(invite.project) ? invite.project[0] : invite.project,
-		// Her indsætter vi nu de rigtige data:
+		// Insert the actual inviter data here:
 		inviter: invitersMap[invite.invitor_user_id] || {
-			name: 'Ukendt bruger',
-			email: 'Ingen email'
+			name: 'Unknown user',
+			email: 'No email'
 		}
 	}));
 
@@ -1170,14 +1170,14 @@ export async function getMyInvitations(
 }
 
 /**
- * Accepter en invitation
+ * Accept an invitation
  */
 export async function acceptInvitation(
 	supabase: TypedSupabaseClient,
 	invitationId: string,
 	userId: string
 ): Promise<{ error: Error | null }> {
-	// 1. Hent invitationen for at få projekt ID
+	// 1. Fetch the invitation to get project ID
 	const { data: invite, error: fetchError } = await supabase
 		.from('project_invitations')
 		.select('*')
@@ -1187,7 +1187,7 @@ export async function acceptInvitation(
 
 	if (fetchError || !invite) return { error: fetchError || new Error('Invitation not found') };
 
-	// 2. Tilføj til project_members
+	// 2. Add to project_members
 	const { error: insertError } = await supabase.from('project_members').insert({
 		project_id: invite.project_id,
 		user_id: userId,

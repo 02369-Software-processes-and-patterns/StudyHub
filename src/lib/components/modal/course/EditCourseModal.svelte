@@ -1,19 +1,15 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { createEventDispatcher } from 'svelte';
-	import Modal from './Modal.svelte';
+	import Modal from '../Modal.svelte';
+	import { ECTS_OPTIONS, WEEKDAYS, toggleWeekday } from '$lib/constants/course';
+	import { extractDateFromISO } from '$lib/utility/date';
+	import type { FailureData, CourseForEdit } from '$lib/types';
 
 	const dispatch = createEventDispatcher();
 
 	export let isOpen = false;
-	export let course: {
-		id: string | number;
-		name: string;
-		ects_points: number;
-		start_date?: string | null;
-		end_date?: string | null;
-		lecture_weekdays?: number[] | string | null;
-	} | null = null;
+	export let course: CourseForEdit | null = null;
 
 	let loading = false;
 	let error = '';
@@ -26,23 +22,6 @@
 		end_date: '',
 		selectedWeekdays: [] as number[]
 	};
-
-	const ectsOptions = [
-		{ label: '2.5 ECTS', value: '2.5' },
-		{ label: '5 ECTS', value: '5' },
-		{ label: '7.5 ECTS', value: '7.5' },
-		{ label: '10 ECTS', value: '10' },
-		{ label: '15 ECTS', value: '15' },
-		{ label: '20 ECTS', value: '20' }
-	];
-
-	const weekdays = [
-		{ label: 'Mon', value: 1 },
-		{ label: 'Tue', value: 2 },
-		{ label: 'Wed', value: 3 },
-		{ label: 'Thu', value: 4 },
-		{ label: 'Fri', value: 5 }
-	];
 
 	// Populate form when modal opens
 	$: if (isOpen && course) {
@@ -62,18 +41,14 @@
 		formData = {
 			name: course.name ?? '',
 			ects_points: String(course.ects_points ?? ''),
-			start_date: course.start_date ? course.start_date.substring(0, 10) : '',
-			end_date: course.end_date ? course.end_date.substring(0, 10) : '',
+			start_date: extractDateFromISO(course.start_date),
+			end_date: extractDateFromISO(course.end_date),
 			selectedWeekdays: weekdaysArray
 		};
 	}
 
-	function toggleWeekday(day: number) {
-		if (formData.selectedWeekdays.includes(day)) {
-			formData.selectedWeekdays = formData.selectedWeekdays.filter((d) => d !== day);
-		} else {
-			formData.selectedWeekdays = [...formData.selectedWeekdays, day];
-		}
+	function handleToggleWeekday(day: number) {
+		formData.selectedWeekdays = toggleWeekday(formData.selectedWeekdays, day);
 	}
 
 	function closeModal() {
@@ -100,7 +75,6 @@
 					dispatch('courseUpdated');
 					closeModal();
 				} else if (result.type === 'failure') {
-					type FailureData = { error?: string };
 					error = (result.data as FailureData | undefined)?.error || 'An error occurred';
 				}
 				loading = false;
@@ -138,7 +112,7 @@
 				class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 pr-10 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 disabled:cursor-not-allowed disabled:bg-gray-100"
 			>
 				<option value="">Select ECTS</option>
-				{#each ectsOptions as option (option.value)}
+				{#each ECTS_OPTIONS as option (option.value)}
 					<option value={option.value}>
 						{option.label}
 					</option>
@@ -173,14 +147,14 @@
 		<div>
 			<p class="mb-2 font-medium text-gray-700">Lecture days</p>
 			<div class="flex gap-2">
-				{#each weekdays as day (day.value)}
+				{#each WEEKDAYS as day (day.value)}
 					<label
 						class="flex cursor-pointer items-center gap-2 rounded-md border border-gray-300 px-3 py-2 transition hover:bg-gray-50"
 					>
 						<input
 							type="checkbox"
 							checked={formData.selectedWeekdays.includes(day.value)}
-							on:change={() => toggleWeekday(day.value)}
+							on:change={() => handleToggleWeekday(day.value)}
 							disabled={loading}
 							class="rounded text-blue-600 focus:ring-blue-500"
 						/>

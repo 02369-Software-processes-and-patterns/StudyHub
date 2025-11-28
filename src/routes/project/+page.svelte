@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import AddProjectModal from '$lib/components/modal/AddProjectModal.svelte';
+	import AddProjectModal from '$lib/components/modal/project/AddProjectModal.svelte';
 	import ProjectList from '$lib/components/list/ProjectList.svelte';
 	import type { PageData } from './$types';
 
@@ -77,7 +77,7 @@
 </div>
 
 <AddProjectModal
-	bind:showModal={showAddProjectModal}
+	bind:isOpen={showAddProjectModal}
 	courses={data.courses}
 	on:projectAdded={handleProjectAdded}
 />

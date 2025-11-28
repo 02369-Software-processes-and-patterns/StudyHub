@@ -1,20 +1,13 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { createEventDispatcher } from 'svelte';
-	import Modal from './Modal.svelte';
-	import type { TaskStatus } from '$lib/server/db';
+	import Modal from '../Modal.svelte';
+	import { formatDatetimeLocal } from '$lib/utility/date';
+	import type { TaskForEdit, CourseOption, FailureData } from '$lib/types';
 
 	export let isOpen = false;
-	export let task: {
-		id: string | number;
-		name: string;
-		effort_hours?: number | null;
-		course_id?: string | null;
-		deadline?: string | null;
-		status?: TaskStatus;
-		priority?: number | null;
-	} | null = null;
-	export let courses: Array<{ id: string; name: string }> = [];
+	export let task: TaskForEdit | null = null;
+	export let courses: CourseOption[] = [];
 
 	const dispatch = createEventDispatcher();
 
@@ -22,7 +15,7 @@
 	let editEffortHours: number | null = null;
 	let editCourseId = '';
 	let editDeadline = '';
-	let editStatus: TaskStatus = 'pending';
+	let editStatus: TaskForEdit['status'] = 'pending';
 	let editPriority: number | null = 2;
 
 	$: if (task && isOpen) {
@@ -32,20 +25,6 @@
 		editDeadline = task.deadline ? formatDatetimeLocal(task.deadline) : '';
 		editStatus = task.status || 'pending';
 		editPriority = task.priority ?? 2;
-	}
-
-	function formatDatetimeLocal(isoString: string): string {
-		try {
-			const date = new Date(isoString);
-			const year = date.getFullYear();
-			const month = String(date.getMonth() + 1).padStart(2, '0');
-			const day = String(date.getDate()).padStart(2, '0');
-			const hours = String(date.getHours()).padStart(2, '0');
-			const minutes = String(date.getMinutes()).padStart(2, '0');
-			return `${year}-${month}-${day}T${hours}:${minutes}`;
-		} catch {
-			return '';
-		}
 	}
 
 	function handleClose() {
@@ -62,6 +41,9 @@
 				if (result.type === 'success') {
 					handleClose();
 					dispatch('taskUpdated');
+				} else if (result.type === 'failure') {
+					const errorMsg = (result.data as FailureData | undefined)?.error ?? 'Unknown error';
+					console.error('Failed to update task:', errorMsg);
 				}
 			};
 		}}

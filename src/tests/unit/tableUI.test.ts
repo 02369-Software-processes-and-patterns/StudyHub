@@ -208,10 +208,7 @@ describe('Table UI - Unit Tests', () => {
 			const result = filterTasks(mockTasks, { nameQuery: 'complete' });
 
 			expect(result).toHaveLength(2);
-			expect(result.map((t) => t.name)).toEqual([
-				'Complete Assignment 1',
-				'Complete Project'
-			]);
+			expect(result.map((t) => t.name)).toEqual(['Complete Assignment 1', 'Complete Project']);
 		});
 
 		it('should filter tasks by name case-insensitively', () => {

@@ -3,8 +3,8 @@
 	import TaskList from '$lib/components/list/TaskList.svelte';
 	import CourseList from '$lib/components/list/CourseList.svelte';
 	import WorkloadList from '$lib/components/list/WorkloadList.svelte';
-	import EditTaskModal from '$lib/components/modal/EditTaskModal.svelte';
-	import EditCourseModal from '$lib/components/modal/EditCourseModal.svelte';
+	import EditTaskModal from '$lib/components/modal/task/EditTaskModal.svelte';
+	import EditCourseModal from '$lib/components/modal/course/EditCourseModal.svelte';
 
 	export let data;
 

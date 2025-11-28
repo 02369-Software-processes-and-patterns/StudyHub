@@ -5,11 +5,11 @@ export const load: LayoutServerLoad = async ({ locals: { safeGetSession, supabas
 
 	let pendingInvitationsCount = 0;
 
-	// Hvis brugeren er logget ind, tæl antallet af ventende invitationer
+	// If user is logged in, count pending invitations
 	if (user) {
 		const { count, error } = await supabase
 			.from('project_invitations')
-			.select('*', { count: 'exact', head: true }) // 'head: true' betyder vi kun henter antallet, ikke data
+			.select('*', { count: 'exact', head: true }) // 'head: true' means we only fetch count, not data
 			.eq('invited_user_id', user.id)
 			.eq('status', 'pending');
 
@@ -21,7 +21,7 @@ export const load: LayoutServerLoad = async ({ locals: { safeGetSession, supabas
 	return {
 		session,
 		user,
-		pendingInvitationsCount, // Vi sender tallet med til frontend
+		pendingInvitationsCount, // Send the count to frontend
 		cookies: cookies.getAll()
 	};
 };

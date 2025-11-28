@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import InviteMemberModal from '$lib/components/modal/InviteMemberModal.svelte';
-	import TransferOwnershipModal from '$lib/components/modal/TransferOwnershipModal.svelte';
-	import AddProjectTaskModal from '$lib/components/modal/AddProjectTaskModal.svelte';
-	import EditProjectTaskModal from '$lib/components/modal/EditProjectTaskModal.svelte';
+	import InviteMemberModal from '$lib/components/modal/project/InviteMemberModal.svelte';
+	import TransferOwnershipModal from '$lib/components/modal/project/TransferOwnershipModal.svelte';
+	import AddProjectTaskModal from '$lib/components/modal/project/AddProjectTaskModal.svelte';
+	import EditProjectTaskModal from '$lib/components/modal/project/EditProjectTaskModal.svelte';
 	import ProjectMembers from '$lib/components/project/ProjectMembers.svelte';
-	import EditProjectModal from '$lib/components/modal/EditProjectModal.svelte';
+	import EditProjectModal from '$lib/components/modal/project/EditProjectModal.svelte';
 	import ProjectTaskList from '$lib/components/list/ProjectTaskList.svelte';
 	import type { PageData } from './$types';
 

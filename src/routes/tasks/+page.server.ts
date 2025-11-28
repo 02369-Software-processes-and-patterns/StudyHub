@@ -5,12 +5,10 @@ import {
 	getCourseOptions,
 	getAuthenticatedUser,
 	createTask,
-	updateTask,
-	deleteTask,
 	markTasksCompleted,
-	parseTaskUpdateForm,
 	parseTaskCreateForm
 } from '$lib/server/db';
+import { handleUpdateTask, handleDeleteTask, requireAuth } from '$lib/server/actions';
 
 export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 	try {
@@ -42,10 +40,8 @@ export const actions: Actions = {
 	/** POST ?/create — create a new task */
 	create: async ({ request, locals: { supabase } }) => {
 		try {
-			const authResult = await getAuthenticatedUser(supabase);
-			if (authResult.error) {
-				return fail(authResult.error.status, { error: authResult.error.message });
-			}
+			const { userId, failResponse } = await requireAuth(supabase);
+			if (failResponse) return failResponse;
 
 			const formData = await request.formData();
 			const { data: taskData, error: parseError } = parseTaskCreateForm(formData);
@@ -56,7 +52,7 @@ export const actions: Actions = {
 
 			const { error } = await createTask(supabase, {
 				...taskData,
-				user_id: authResult.userId
+				user_id: userId
 			});
 
 			if (error) {
@@ -73,40 +69,14 @@ export const actions: Actions = {
 
 	/** POST ?/updateTask — update task fields (status, name, etc.) */
 	updateTask: async ({ request, locals: { supabase } }) => {
-		try {
-			const authResult = await getAuthenticatedUser(supabase);
-			if (authResult.error) {
-				return fail(authResult.error.status, { error: authResult.error.message });
-			}
-
-			const formData = await request.formData();
-			const { taskId, updates, error: parseError } = parseTaskUpdateForm(formData);
-
-			if (parseError || !taskId) {
-				return fail(400, { error: parseError ?? 'Missing task_id' });
-			}
-
-			const { error } = await updateTask(supabase, taskId, authResult.userId, updates);
-
-			if (error) {
-				console.error('Supabase update error:', error);
-				return fail(500, { error: error.message });
-			}
-
-			return { success: true, updated: Object.keys(updates) };
-		} catch (err) {
-			console.error('updateTask action crashed:', err);
-			return fail(500, { error: 'Internal error while updating task' });
-		}
+		return handleUpdateTask(request, supabase);
 	},
 
 	/** POST ?/updateTasksBatch — mark multiple tasks as completed */
 	updateTasksBatch: async ({ request, locals: { supabase } }) => {
 		try {
-			const authResult = await getAuthenticatedUser(supabase);
-			if (authResult.error) {
-				return fail(authResult.error.status, { error: authResult.error.message });
-			}
+			const { userId, failResponse } = await requireAuth(supabase);
+			if (failResponse) return failResponse;
 
 			const formData = await request.formData();
 			const taskIds = formData.getAll('task_ids').map(String);
@@ -115,7 +85,7 @@ export const actions: Actions = {
 				return fail(400, { error: 'No task IDs provided' });
 			}
 
-			const { data, error } = await markTasksCompleted(supabase, taskIds, authResult.userId);
+			const { data, error } = await markTasksCompleted(supabase, taskIds, userId);
 
 			if (error) {
 				console.error('Supabase batch update error:', error);
@@ -131,30 +101,6 @@ export const actions: Actions = {
 
 	/** POST ?/deleteTask — delete a single task */
 	deleteTask: async ({ request, locals: { supabase } }) => {
-		try {
-			const authResult = await getAuthenticatedUser(supabase);
-			if (authResult.error) {
-				return fail(authResult.error.status, { error: authResult.error.message });
-			}
-
-			const formData = await request.formData();
-			const taskId = formData.get('task_id')?.toString();
-
-			if (!taskId) {
-				return fail(400, { error: 'Missing task_id' });
-			}
-
-			const { error } = await deleteTask(supabase, taskId, authResult.userId);
-
-			if (error) {
-				console.error('Supabase delete error:', error);
-				return fail(500, { error: error.message });
-			}
-
-			return { success: true };
-		} catch (err) {
-			console.error('deleteTask action crashed:', err);
-			return fail(500, { error: 'Internal error while deleting task' });
-		}
+		return handleDeleteTask(request, supabase);
 	}
 };

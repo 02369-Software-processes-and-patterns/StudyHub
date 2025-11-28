@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
 	calculateWeekData,
@@ -160,9 +159,7 @@ describe('Workload Graph - Integration Tests', () => {
 		});
 
 		it('should calculate workload for previous week', () => {
-			const tasks: Task[] = [
-				createTask('1', 'Last Week', '2024-12-02T10:00:00Z', 8, 'completed')
-			];
+			const tasks: Task[] = [createTask('1', 'Last Week', '2024-12-02T10:00:00Z', 8, 'completed')];
 
 			const weekData = calculateWeekData(tasks, -1); // Previous week
 
@@ -175,9 +172,7 @@ describe('Workload Graph - Integration Tests', () => {
 		});
 
 		it('should calculate workload for next week', () => {
-			const tasks: Task[] = [
-				createTask('1', 'Next Week', '2024-12-16T10:00:00Z', 6, 'todo')
-			];
+			const tasks: Task[] = [createTask('1', 'Next Week', '2024-12-16T10:00:00Z', 6, 'todo')];
 
 			const weekData = calculateWeekData(tasks, 1); // Next week
 
@@ -189,21 +184,22 @@ describe('Workload Graph - Integration Tests', () => {
 			expect(taskDay!.incomplete).toBe(6);
 		});
 
-	it('should handle multiple tasks on same day', () => {
-		const tasks: Task[] = [
-			createTask('1', 'Task 1', '2024-12-10T09:00:00Z', 3, 'todo'), // Before noon - overdue
-			createTask('2', 'Task 2', '2024-12-10T15:00:00Z', 5, 'working'), // After noon - incomplete
-			createTask('3', 'Task 3', '2024-12-10T20:00:00Z', 2, 'completed')
-		];
+		it('should handle multiple tasks on same day', () => {
+			const tasks: Task[] = [
+				createTask('1', 'Task 1', '2024-12-10T09:00:00Z', 3, 'todo'), // Before noon - overdue
+				createTask('2', 'Task 2', '2024-12-10T15:00:00Z', 5, 'working'), // After noon - incomplete
+				createTask('3', 'Task 3', '2024-12-10T20:00:00Z', 2, 'completed')
+			];
 
-		const weekData = calculateWeekData(tasks, 0);
+			const weekData = calculateWeekData(tasks, 0);
 
-		// Tuesday Dec 10 (now is 12:00 on Dec 10)
-		const tuesday = weekData[1];
-		expect(tuesday.overdue).toBe(3); // Task 1 at 09:00 is before now
-		expect(tuesday.incomplete).toBe(5); // Task 2 at 15:00 is after now
-		expect(tuesday.completed).toBe(2);
-	});		it('should handle empty task list', () => {
+			// Tuesday Dec 10 (now is 12:00 on Dec 10)
+			const tuesday = weekData[1];
+			expect(tuesday.overdue).toBe(3); // Task 1 at 09:00 is before now
+			expect(tuesday.incomplete).toBe(5); // Task 2 at 15:00 is after now
+			expect(tuesday.completed).toBe(2);
+		});
+		it('should handle empty task list', () => {
 			const weekData = calculateWeekData([], 0);
 
 			expect(weekData).toHaveLength(7);
@@ -281,9 +277,7 @@ describe('Workload Graph - Integration Tests', () => {
 		});
 
 		it('should calculate workload for next month', () => {
-			const tasks: Task[] = [
-				createTask('1', 'January Task', '2025-01-15T10:00:00Z', 7, 'todo')
-			];
+			const tasks: Task[] = [createTask('1', 'January Task', '2025-01-15T10:00:00Z', 7, 'todo')];
 
 			const monthData = calculateMonthData(tasks, 1); // Next month
 
@@ -357,9 +351,7 @@ describe('Workload Graph - Integration Tests', () => {
 		});
 
 		it('should return empty array for invalid date range (start > end)', () => {
-			const tasks: Task[] = [
-				createTask('1', 'Task', '2024-12-15T10:00:00Z', 5, 'working')
-			];
+			const tasks: Task[] = [createTask('1', 'Task', '2024-12-15T10:00:00Z', 5, 'working')];
 
 			const customData = calculateCustomData(tasks, '2024-12-25', '2024-12-10');
 
@@ -367,32 +359,31 @@ describe('Workload Graph - Integration Tests', () => {
 		});
 
 		it('should return empty array for empty date strings', () => {
-			const tasks: Task[] = [
-				createTask('1', 'Task', '2024-12-15T10:00:00Z', 5, 'working')
-			];
+			const tasks: Task[] = [createTask('1', 'Task', '2024-12-15T10:00:00Z', 5, 'working')];
 
 			const customData = calculateCustomData(tasks, '', '');
 
 			expect(customData).toHaveLength(0);
 		});
 
-	it('should handle single-day range', () => {
-		const tasks: Task[] = [
-			createTask('1', 'Single Day', '2024-12-15', 8, 'todo') // Use date-only format
-		];
+		it('should handle single-day range', () => {
+			const tasks: Task[] = [
+				createTask('1', 'Single Day', '2024-12-15', 8, 'todo') // Use date-only format
+			];
 
-		const customData = calculateCustomData(tasks, '2024-12-15', '2024-12-15');
+			const customData = calculateCustomData(tasks, '2024-12-15', '2024-12-15');
 
-		expect(customData.length).toBeGreaterThan(0);
-		expect(customData[0].incomplete).toBe(8); // Dec 15 is after now (Dec 10)
+			expect(customData.length).toBeGreaterThan(0);
+			expect(customData[0].incomplete).toBe(8); // Dec 15 is after now (Dec 10)
 
-		const totalHours = customData.reduce(
-			(sum, week) => sum + week.overdue + week.incomplete + week.completed,
-			0
-		);
+			const totalHours = customData.reduce(
+				(sum, week) => sum + week.overdue + week.incomplete + week.completed,
+				0
+			);
 
-		expect(totalHours).toBe(8);
-	});		it('should handle range spanning multiple weeks', () => {
+			expect(totalHours).toBe(8);
+		});
+		it('should handle range spanning multiple weeks', () => {
 			const tasks: Task[] = [
 				createTask('1', 'Week 1', '2024-12-10T10:00:00Z', 5, 'todo'),
 				createTask('2', 'Week 2', '2024-12-17T10:00:00Z', 6, 'working'),
@@ -516,36 +507,36 @@ describe('Workload Graph - Integration Tests', () => {
 	});
 
 	describe('Complete Workload Workflow', () => {
-	it('should handle realistic weekly workload scenario', () => {
-		const tasks: Task[] = [
-			// Monday - 2 tasks (Dec 9)
-			createTask('1', 'Monday Meeting Prep', '2024-12-09T09:00:00Z', 2, 'completed'),
-			createTask('2', 'Monday Report', '2024-12-09T17:00:00Z', 4, 'completed'),
+		it('should handle realistic weekly workload scenario', () => {
+			const tasks: Task[] = [
+				// Monday - 2 tasks (Dec 9)
+				createTask('1', 'Monday Meeting Prep', '2024-12-09T09:00:00Z', 2, 'completed'),
+				createTask('2', 'Monday Report', '2024-12-09T17:00:00Z', 4, 'completed'),
 
-			// Tuesday - current day (Dec 10, now = 12:00)
-			createTask('3', 'Tuesday Task 1', '2024-12-10T10:00:00Z', 3, 'working'), // Before noon - overdue
-			createTask('4', 'Tuesday Task 2', '2024-12-10T15:00:00Z', 2, 'todo'), // After noon - incomplete
+				// Tuesday - current day (Dec 10, now = 12:00)
+				createTask('3', 'Tuesday Task 1', '2024-12-10T10:00:00Z', 3, 'working'), // Before noon - overdue
+				createTask('4', 'Tuesday Task 2', '2024-12-10T15:00:00Z', 2, 'todo'), // After noon - incomplete
 
-			// Wednesday - future tasks (Dec 11)
-			createTask('5', 'Wednesday Project', '2024-12-11T10:00:00Z', 8, 'todo'),
+				// Wednesday - future tasks (Dec 11)
+				createTask('5', 'Wednesday Project', '2024-12-11T10:00:00Z', 8, 'todo'),
 
-			// Friday - deadline (Dec 13)
-			createTask('6', 'Friday Deadline', '2024-12-13T23:59:00Z', 5, 'todo')
-		];
+				// Friday - deadline (Dec 13)
+				createTask('6', 'Friday Deadline', '2024-12-13T23:59:00Z', 5, 'todo')
+			];
 
-		const weekData = calculateWeekData(tasks, 0);
-		const totals = calculateSummaryTotals(weekData);
+			const weekData = calculateWeekData(tasks, 0);
+			const totals = calculateSummaryTotals(weekData);
 
-		// Verify distribution
-		expect(totals.totalCompleted).toBe(6); // Monday tasks (2 + 4)
-		expect(totals.totalIncomplete).toBe(15); // Tuesday afternoon (2) + Wed (8) + Fri (5)
-		expect(totals.totalOverdue).toBe(3); // Tuesday morning task
+			// Verify distribution
+			expect(totals.totalCompleted).toBe(6); // Monday tasks (2 + 4)
+			expect(totals.totalIncomplete).toBe(15); // Tuesday afternoon (2) + Wed (8) + Fri (5)
+			expect(totals.totalOverdue).toBe(3); // Tuesday morning task
 
-		// Verify total hours
-		const grandTotal =
-			totals.totalOverdue + totals.totalIncomplete + totals.totalCompleted;
-		expect(grandTotal).toBe(24); // Sum of all effort hours
-	});		it('should handle semester planning scenario', () => {
+			// Verify total hours
+			const grandTotal = totals.totalOverdue + totals.totalIncomplete + totals.totalCompleted;
+			expect(grandTotal).toBe(24); // Sum of all effort hours
+		});
+		it('should handle semester planning scenario', () => {
 			const tasks: Task[] = [
 				// Spread across multiple weeks
 				createTask('1', 'Week 1 Assignment', '2024-12-05T23:59:00Z', 10, 'completed'),
@@ -560,8 +551,7 @@ describe('Workload Graph - Integration Tests', () => {
 			expect(totals.totalCompleted).toBe(10);
 			expect(totals.totalIncomplete).toBeGreaterThan(0);
 
-			const grandTotal =
-				totals.totalOverdue + totals.totalIncomplete + totals.totalCompleted;
+			const grandTotal = totals.totalOverdue + totals.totalIncomplete + totals.totalCompleted;
 			expect(grandTotal).toBe(57);
 		});
 
@@ -590,34 +580,32 @@ describe('Workload Graph - Integration Tests', () => {
 	});
 
 	describe('Edge Cases and Error Handling', () => {
-	it('should handle tasks with zero effort hours', () => {
-		const tasks: Task[] = [
-			createTask('1', 'Zero Effort', '2024-12-10T15:00:00Z', 0, 'todo'), // Zero effort counts as 0
-			createTask('2', 'Normal Effort', '2024-12-10T15:00:00Z', 5, 'working')
-		];
+		it('should handle tasks with zero effort hours', () => {
+			const tasks: Task[] = [
+				createTask('1', 'Zero Effort', '2024-12-10T15:00:00Z', 0, 'todo'), // Zero effort counts as 0
+				createTask('2', 'Normal Effort', '2024-12-10T15:00:00Z', 5, 'working')
+			];
 
-		const weekData = calculateWeekData(tasks, 0);
-		const tuesday = weekData[1];
+			const weekData = calculateWeekData(tasks, 0);
+			const tuesday = weekData[1];
 
-		expect(tuesday.incomplete).toBe(5); // 0 + 5 (zero effort is treated as 0)
-	});
+			expect(tuesday.incomplete).toBe(5); // 0 + 5 (zero effort is treated as 0)
+		});
 
-	it('should handle tasks with null effort hours', () => {
-		const tasks: Task[] = [
-			createTask('1', 'Null Effort', '2024-12-10T15:00:00Z', null, 'todo'), // Null effort counts as 0
-			createTask('2', 'Normal Effort', '2024-12-10T15:00:00Z', 3, 'working')
-		];
+		it('should handle tasks with null effort hours', () => {
+			const tasks: Task[] = [
+				createTask('1', 'Null Effort', '2024-12-10T15:00:00Z', null, 'todo'), // Null effort counts as 0
+				createTask('2', 'Normal Effort', '2024-12-10T15:00:00Z', 3, 'working')
+			];
 
-		const weekData = calculateWeekData(tasks, 0);
-		const tuesday = weekData[1];
+			const weekData = calculateWeekData(tasks, 0);
+			const tuesday = weekData[1];
 
-		expect(tuesday.incomplete).toBe(3); // 0 + 3 (null effort is treated as 0)
-	});
+			expect(tuesday.incomplete).toBe(3); // 0 + 3 (null effort is treated as 0)
+		});
 
 		it('should handle extreme week offsets', () => {
-			const tasks: Task[] = [
-				createTask('1', 'Far Future', '2025-06-15T10:00:00Z', 10, 'todo')
-			];
+			const tasks: Task[] = [createTask('1', 'Far Future', '2025-06-15T10:00:00Z', 10, 'todo')];
 
 			const weekData = calculateWeekData(tasks, 26); // ~6 months ahead
 
@@ -651,16 +639,17 @@ describe('Workload Graph - Integration Tests', () => {
 			expect(weekData).toHaveLength(7);
 		});
 
-	it('should handle very large effort hours', () => {
-		const tasks: Task[] = [
-			createTask('1', 'Huge Task', '2024-12-10T15:00:00Z', 1000, 'working') // After noon - incomplete
-		];
+		it('should handle very large effort hours', () => {
+			const tasks: Task[] = [
+				createTask('1', 'Huge Task', '2024-12-10T15:00:00Z', 1000, 'working') // After noon - incomplete
+			];
 
-		const weekData = calculateWeekData(tasks, 0);
-		const tuesday = weekData[1];
+			const weekData = calculateWeekData(tasks, 0);
+			const tuesday = weekData[1];
 
-		expect(tuesday.incomplete).toBe(1000);
-	});		it('should handle multiple view mode switches', () => {
+			expect(tuesday.incomplete).toBe(1000);
+		});
+		it('should handle multiple view mode switches', () => {
 			const tasks: Task[] = [
 				createTask('1', 'Task 1', '2024-12-10T10:00:00Z', 5, 'working'),
 				createTask('2', 'Task 2', '2024-12-15T10:00:00Z', 8, 'todo')

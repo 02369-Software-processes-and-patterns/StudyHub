@@ -1,29 +1,7 @@
-type TaskStatus = 'pending' | 'todo' | 'on-hold' | 'working' | 'completed';
+import type { WorkloadTask, DayData, WeekData } from '$lib/types';
 
-export interface Task {
-	id: string | number;
-	name: string;
-	status: TaskStatus;
-	deadline?: string | null;
-	effort_hours?: number | null;
-	[key: string]: unknown;
-}
-
-export interface DayData {
-	date: Date;
-	label: string;
-	overdue: number;
-	incomplete: number;
-	completed: number;
-}
-
-export interface WeekData {
-	weekNumber: number;
-	label: string;
-	overdue: number;
-	incomplete: number;
-	completed: number;
-}
+// Re-export types for backward compatibility
+export type { WorkloadTask as Task, DayData, WeekData } from '$lib/types';
 
 /**
  * Get the start of the week (Monday) for a given date
@@ -31,7 +9,7 @@ export interface WeekData {
 export function getStartOfWeek(date: Date): Date {
 	const d = new Date(date);
 	const day = d.getDay();
-	// Mandag som start på ugen (0 = søndag, 1 = mandag, ...)
+	// Monday as start of week (0 = Sunday, 1 = Monday, ...)
 	const diff = d.getDate() - day + (day === 0 ? -6 : 1);
 	return new Date(d.setDate(diff));
 }
@@ -64,7 +42,7 @@ export function getWeekNumber(date: Date): number {
 /**
  * Check if a task is overdue (deadline has passed and not completed)
  */
-export function isTaskOverdue(task: Task, now: Date): boolean {
+export function isTaskOverdue(task: WorkloadTask, now: Date): boolean {
 	if (!task.deadline || task.status === 'completed') return false;
 	const deadline = new Date(task.deadline);
 	return deadline < now;
@@ -73,7 +51,7 @@ export function isTaskOverdue(task: Task, now: Date): boolean {
 /**
  * Check if a task is incomplete (deadline not passed and not completed)
  */
-export function isTaskIncomplete(task: Task, now: Date): boolean {
+export function isTaskIncomplete(task: WorkloadTask, now: Date): boolean {
 	if (!task.deadline || task.status === 'completed') return false;
 	const deadline = new Date(task.deadline);
 	return deadline >= now;
@@ -82,7 +60,7 @@ export function isTaskIncomplete(task: Task, now: Date): boolean {
 /**
  * Check if a task is completed
  */
-export function isTaskCompleted(task: Task): boolean {
+export function isTaskCompleted(task: WorkloadTask): boolean {
 	return task.status === 'completed';
 }
 
@@ -92,7 +70,7 @@ export function isTaskCompleted(task: Task): boolean {
  * @param weekOffset - Number of weeks from current week (0 = current, -1 = previous, 1 = next)
  * @returns Array of daily workload data
  */
-export function calculateWeekData(tasks: Task[], weekOffset: number = 0): DayData[] {
+export function calculateWeekData(tasks: WorkloadTask[], weekOffset: number = 0): DayData[] {
 	const now = new Date();
 	const targetDate = new Date(now);
 	targetDate.setDate(now.getDate() + weekOffset * 7);
@@ -140,15 +118,15 @@ export function calculateWeekData(tasks: Task[], weekOffset: number = 0): DayDat
  * @param monthOffset - Number of months from current month (0 = current, -1 = previous, 1 = next)
  * @returns Array of weekly workload data
  */
-export function calculateMonthData(tasks: Task[], monthOffset: number = 0): WeekData[] {
+export function calculateMonthData(tasks: WorkloadTask[], monthOffset: number = 0): WeekData[] {
 	const now = new Date();
 	const targetDate = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
 	const startOfMonth = getStartOfMonth(targetDate);
 	const endOfMonth = getEndOfMonth(targetDate);
 
-	// Find første mandag før eller på månedens start
+	// Find first Monday before or on start of month
 	const firstMonday = getStartOfWeek(startOfMonth);
-	// Find sidste søndag efter eller på månedens slut
+	// Find last Sunday after or on end of month
 	const lastSunday = new Date(getStartOfWeek(endOfMonth));
 	lastSunday.setDate(lastSunday.getDate() + 6);
 
@@ -194,7 +172,11 @@ export function calculateMonthData(tasks: Task[], monthOffset: number = 0): Week
  * @param endDate - End date of the range
  * @returns Array of weekly workload data
  */
-export function calculateCustomData(tasks: Task[], startDate: string, endDate: string): WeekData[] {
+export function calculateCustomData(
+	tasks: WorkloadTask[],
+	startDate: string,
+	endDate: string
+): WeekData[] {
 	if (!startDate || !endDate) {
 		return [];
 	}

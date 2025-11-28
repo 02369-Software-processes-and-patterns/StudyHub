@@ -2,66 +2,54 @@
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import ListCard from './ListCard.svelte';
-	import Modal from '../modal/Modal.svelte';
+	import DeleteConfirmationModal from '../modal/DeleteConfirmationModal.svelte';
+	import type { TaskForList, TaskStatus } from '$lib/types';
 
-	type TaskStatus = 'pending' | 'todo' | 'on-hold' | 'working' | 'completed';
-	type CourseRef = { id: string | number; name: string };
-	type Task = {
-		id: string | number;
-		name: string;
-		status: TaskStatus;
-		deadline?: string | null;
-		effort_hours?: number | null;
-		course?: CourseRef | null;
-		priority?: number | null;
-	};
-
-	export let tasks: Task[] = [];
+	export let tasks: TaskForList[] = [];
 	export let maxTasks: number | null = null;
 	export let showViewAll: boolean = true;
-	export let openEdit: (task: Task) => void;
+	export let openEdit: (task: TaskForList) => void;
 	export let preserveOrder: boolean = false;
 	export let showFilters: boolean = true;
 	export let totalTasksOverride: number | null = null;
 
 	// Delete modal state
 	let deleteModalOpen = false;
-	let taskToDelete: Task | null = null;
-	let isDeleting: Record<string | number, boolean> = {};
+	let taskToDelete: TaskForList | null = null;
+	let isDeletingCurrent = false;
 	let deleteError = '';
 
 	// Delete modal functions
-	function openDeleteModal(task: Task) {
+	function openDeleteModal(task: TaskForList) {
 		taskToDelete = task;
 		deleteModalOpen = true;
+		deleteError = '';
 	}
 
 	function closeDeleteModal() {
 		deleteModalOpen = false;
 		taskToDelete = null;
 		deleteError = '';
+		isDeletingCurrent = false;
 	}
 
 	async function confirmDelete() {
 		if (!taskToDelete) return;
 
-		const taskId = taskToDelete.id; // Save ID before closeDeleteModal sets taskToDelete to null
-		isDeleting[taskId] = true;
+		isDeletingCurrent = true;
 		deleteError = '';
 
 		try {
 			const formData = new FormData();
-			formData.append('task_id', String(taskId));
+			formData.append('task_id', String(taskToDelete.id));
 
 			const response = await fetch('?/deleteTask', {
 				method: 'POST',
 				body: formData
 			});
 
-			// Parse the response to check for success
 			const result = await response.json();
 
-			// SvelteKit form actions return { type: 'success' } or { type: 'failure' }
 			if (result.type === 'success' || (response.ok && !result.type)) {
 				closeDeleteModal();
 				await invalidateAll();
@@ -69,12 +57,11 @@
 				deleteError = result.data?.error || 'Failed to delete task. Please try again.';
 			}
 		} catch (err) {
-			// If JSON parsing fails, try to refresh anyway (action might have succeeded)
 			console.error('Error deleting task:', err);
 			closeDeleteModal();
 			await invalidateAll();
 		} finally {
-			isDeleting[taskId] = false;
+			isDeletingCurrent = false;
 		}
 	}
 
@@ -169,18 +156,18 @@
 		if (!deadline) return false;
 		return new Date(deadline) < new Date();
 	}
-	const isOverdueTask = (t: Task) => isOverdue(t.deadline) && t.status !== 'completed';
-	const isCompletedTask = (t: Task) => t.status === 'completed';
-	const isWorkingTask = (t: Task) => t.status === 'working';
+	const isOverdueTask = (t: TaskForList) => isOverdue(t.deadline) && t.status !== 'completed';
+	const isCompletedTask = (t: TaskForList) => t.status === 'completed';
+	const isWorkingTask = (t: TaskForList) => t.status === 'working';
 
-	function getDeadlineClass(task: Task) {
+	function getDeadlineClass(task: TaskForList) {
 		if (isOverdueTask(task) && isWorkingTask(task)) return 'text-orange-600 font-semibold';
 		if (isOverdueTask(task)) return 'text-red-600 font-semibold';
 		if (isCompletedTask(task)) return 'text-green-600 font-semibold';
 		if (isWorkingTask(task)) return 'text-yellow-600 font-semibold';
 		return 'text-gray-500';
 	}
-	function getRowClass(task: Task) {
+	function getRowClass(task: TaskForList) {
 		if (isOverdueTask(task) && isWorkingTask(task)) return 'bg-orange-50';
 		if (isOverdueTask(task)) return 'bg-red-50';
 		if (isCompletedTask(task)) return 'bg-green-50';
@@ -548,41 +535,17 @@
 								<button
 									type="button"
 									on:click={() => openDeleteModal(task)}
-									disabled={isDeleting[task.id]}
-									class="inline-flex h-5 w-5 items-center justify-center rounded text-red-600 transition hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50 sm:h-6 sm:w-6"
+									class="inline-flex h-5 w-5 items-center justify-center rounded text-red-600 transition hover:bg-red-50 hover:text-red-700 sm:h-6 sm:w-6"
 									title="Delete task"
 									aria-label="Delete task"
 								>
-									{#if isDeleting[task.id]}
-										<svg
-											class="h-3.5 w-3.5 animate-spin sm:h-4 sm:w-4"
-											fill="none"
-											stroke="currentColor"
-											viewBox="0 0 24 24"
-										>
-											<circle
-												class="opacity-25"
-												cx="12"
-												cy="12"
-												r="10"
-												stroke="currentColor"
-												stroke-width="4"
-											></circle>
-											<path
-												class="opacity-75"
-												fill="currentColor"
-												d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-											></path>
-										</svg>
-									{:else}
-										<svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="currentColor" viewBox="0 0 20 20">
-											<path
-												fill-rule="evenodd"
-												d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-												clip-rule="evenodd"
-											/>
-										</svg>
-									{/if}
+									<svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="currentColor" viewBox="0 0 20 20">
+										<path
+											fill-rule="evenodd"
+											d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+											clip-rule="evenodd"
+										/>
+									</svg>
 								</button>
 							</td>
 						</tr>
@@ -594,45 +557,13 @@
 </ListCard>
 
 <!-- Delete Confirmation Modal -->
-<Modal
+<DeleteConfirmationModal
 	bind:isOpen={deleteModalOpen}
-	title="Delete Task"
-	maxWidth="max-w-sm"
+	itemType="Task"
+	itemName={taskToDelete?.name ?? ''}
+	warningMessage="This action cannot be undone."
+	isDeleting={isDeletingCurrent}
+	errorMessage={deleteError}
+	on:confirm={confirmDelete}
 	on:close={closeDeleteModal}
->
-	{#if taskToDelete}
-		{#if deleteError}
-			<div class="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
-				{deleteError}
-			</div>
-		{/if}
-
-		<div class="space-y-4">
-			<p class="text-gray-600">
-				Are you sure you want to delete <span class="font-semibold text-gray-900"
-					>"{taskToDelete.name}"</span
-				>?
-			</p>
-			<p class="text-sm text-gray-500">This action cannot be undone.</p>
-		</div>
-
-		<div class="mt-4 flex gap-3 border-t border-gray-200 pt-6">
-			<button
-				type="button"
-				on:click={closeDeleteModal}
-				disabled={Object.values(isDeleting).some(Boolean)}
-				class="flex-1 rounded-md border border-gray-300 px-4 py-2 font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-			>
-				Cancel
-			</button>
-			<button
-				type="button"
-				on:click={confirmDelete}
-				disabled={Object.values(isDeleting).some(Boolean)}
-				class="flex-1 rounded-md bg-red-600 px-4 py-2 font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-			>
-				{Object.values(isDeleting).some(Boolean) ? 'Deleting...' : 'Delete Task'}
-			</button>
-		</div>
-	{/if}
-</Modal>
+/>

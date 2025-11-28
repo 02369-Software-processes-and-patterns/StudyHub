@@ -1,22 +1,16 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import AddCourseForm from '$lib/components/modal/AddCourseModal.svelte';
-	import EditCourseModal from '$lib/components/modal/EditCourseModal.svelte';
+	import AddCourseModal from '$lib/components/modal/course/AddCourseModal.svelte';
+	import EditCourseModal from '$lib/components/modal/course/EditCourseModal.svelte';
 	import CourseList from '$lib/components/list/CourseList.svelte';
 	import type { PageData } from './$types';
+	import type { CourseForEdit } from '$lib/types';
 
 	export let data: PageData;
 
 	let showAddCourseModal = false;
 	let isEditOpen = false;
-	let courseToEdit: {
-		id: string | number;
-		name: string;
-		ects_points: number;
-		start_date?: string | null;
-		end_date?: string | null;
-		lecture_weekdays?: number[] | string | null;
-	} | null = null;
+	let courseToEdit: CourseForEdit | null = null;
 
 	async function handleCourseAdded() {
 		await invalidateAll();
@@ -32,7 +26,7 @@
 		isEditOpen = false;
 	}
 
-	function openEdit(course: typeof courseToEdit) {
+	function openEdit(course: CourseForEdit) {
 		courseToEdit = course;
 		isEditOpen = true;
 	}
@@ -106,7 +100,7 @@
 	</div>
 </div>
 
-<AddCourseForm bind:showModal={showAddCourseModal} on:courseAdded={handleCourseAdded} />
+<AddCourseModal bind:isOpen={showAddCourseModal} on:courseAdded={handleCourseAdded} />
 
 <EditCourseModal
 	bind:isOpen={isEditOpen}

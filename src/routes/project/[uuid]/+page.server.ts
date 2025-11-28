@@ -92,7 +92,7 @@ export const actions: Actions = {
 			return fail(400, { error: 'Invalid data format' });
 		}
 
-		// ÆNDRING: Loop igennem og opret invitationer i stedet for direkte tilføjelse
+		// Loop through and create invitations instead of direct addition
 		let successCount = 0;
 		const errors = [];
 
@@ -157,28 +157,28 @@ export const actions: Actions = {
 		}
 
 		const projectId = params.uuid;
-		const adminUserId = authResult.userId; // Dig (den der udfører handlingen)
+		const adminUserId = authResult.userId; // You (the one performing the action)
 
-		// 2. Hent data fra formularen
+		// 2. Get data from form
 		const formData = await request.formData();
-		const targetUserId = formData.get('user_id') as string; // Den der skal slettes
+		const targetUserId = formData.get('user_id') as string; // The user to be removed
 
 		if (!targetUserId) {
 			return fail(400, { error: 'Missing user_id to remove' });
 		}
 
-		// 3. Tjek rettigheder: Er du Owner eller Admin?
+		// 3. Check permissions: Are you Owner or Admin?
 		const { role } = await getProjectMemberRole(supabase, projectId, adminUserId);
 		if (role !== 'Owner' && role !== 'Admin') {
 			return fail(403, { error: 'Only Owners and Admins can remove members.' });
 		}
 
-		// Sikkerhed: Man må ikke kunne slette sig selv via denne knap (brug 'Leave' knappen i stedet)
+		// Security: Cannot remove yourself via this button (use 'Leave' button instead)
 		if (targetUserId === adminUserId) {
 			return fail(400, { error: 'Use the "Leave Project" button to remove yourself.' });
 		}
 
-		// 4. Udfør sletningen ved hjælp af din funktion fra db.ts
+		// 4. Perform deletion using the function from db.ts
 		const { error } = await removeProjectMember(supabase, projectId, targetUserId);
 
 		if (error) {
