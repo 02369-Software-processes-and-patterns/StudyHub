@@ -17,7 +17,6 @@
 	// Navigation buttons data
 	const navButtons = [
 		{ label: 'My dashboard', href: '/dashboard' },
-		{ label: 'My Workload', href: '/workload' },
 		{ label: 'My Tasks', href: '/tasks' },
 		{ label: 'My Courses', href: '/course' },
 		{ label: 'My Projects', href: '/project' }

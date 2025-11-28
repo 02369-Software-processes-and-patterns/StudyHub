@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { createEventDispatcher } from 'svelte';
-	import Modal from './Modal.svelte';
+	import Modal from '../Modal.svelte';
 
 	const dispatch = createEventDispatcher();
 
@@ -76,7 +76,7 @@
 		invitedMembers = invitedMembers.filter((m) => m.email !== email);
 	}
 
-	// Denne funktion kører, når du trykker på krydset (eller "Close" knappen)
+	// This function runs when you click the X (or "Close" button)
 	function closeModal() {
 		if (hasInvited) {
 			dispatch('invited');
@@ -86,7 +86,7 @@
 		invitedMembers = [];
 		error = '';
 		successMessage = '';
-		hasInvited = false; // Nulstil status
+		hasInvited = false; // Reset status
 		dispatch('close');
 	}
 

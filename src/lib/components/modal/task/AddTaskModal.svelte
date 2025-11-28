@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
 	import { enhance } from '$app/forms';
-	import Modal from './Modal.svelte';
+	import Modal from '../Modal.svelte';
+	import type { CourseOption, FailureData } from '$lib/types';
 
 	export let isOpen = false;
-	export let courses: Array<{ id: string; name: string }> = [];
+	export let courses: CourseOption[] = [];
 
 	const dispatch = createEventDispatcher();
 
@@ -50,7 +51,6 @@
 					closeModal();
 					resetForm();
 				} else if (result.type === 'failure') {
-					type FailureData = { error?: string };
 					errorMessage = (result.data as FailureData | undefined)?.error ?? 'Unknown error';
 				}
 				await update();

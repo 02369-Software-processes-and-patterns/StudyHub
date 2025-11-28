@@ -4,13 +4,11 @@
 		calculateMonthData,
 		calculateCustomData,
 		calculateSummaryTotals,
-		getStartOfWeek,
-		type Task,
-		type DayData,
-		type WeekData
+		getStartOfWeek
 	} from '$lib/utility/workloadCalculation';
+	import type { WorkloadTask, DayData, WeekData } from '$lib/types';
 
-	export let tasks: Task[] = [];
+	export let tasks: WorkloadTask[] = [];
 
 	let viewMode: 'week' | 'month' | 'custom' = 'week';
 	let customStartDate = '';

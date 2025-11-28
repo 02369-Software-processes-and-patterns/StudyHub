@@ -97,7 +97,7 @@ export const actions: Actions = {
 
 				if (inviteError) {
 					console.error(`Failed to invite ${member.email} during project creation:`, inviteError);
-					// Vi fortsætter selvom en invitation fejler, da projektet ER oprettet
+					// Continue even if invitation fails, since the project IS created
 				}
 			}
 		}

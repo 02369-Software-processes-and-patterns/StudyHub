@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { createEventDispatcher } from 'svelte';
-	import Modal from './Modal.svelte';
+	import Modal from '../Modal.svelte';
 
 	const dispatch = createEventDispatcher();
 
@@ -21,7 +21,7 @@
 	let loading = false;
 	let error = '';
 
-	// Lokale formværdier (bindes til inputs)
+	// Local form values (bound to inputs)
 	let formData = {
 		name: '',
 		description: '',
@@ -30,7 +30,7 @@
 		course_name: ''
 	};
 
-	// Tilladte statusværdier
+	// Allowed status values
 	const statusOptions = [
 		{ label: 'Planning', value: 'planning' },
 		{ label: 'Active', value: 'active' },
@@ -38,7 +38,7 @@
 		{ label: 'Completed', value: 'completed' }
 	];
 
-	// Når modalen åbnes, forudfyld felter fra project
+	// When modal opens, prefill fields from project
 	$: if (isOpen && project) {
 		formData = {
 			name: project.name ?? '',
@@ -49,7 +49,7 @@
 		};
 	}
 
-	// Luk modal og nulstil fejl
+	// Close modal and reset error
 	function closeModal() {
 		isOpen = false;
 		error = '';
@@ -59,7 +59,7 @@
 
 <Modal bind:isOpen title="Edit Project" on:close={closeModal}>
 	{#if error}
-		<!-- Server/valideringsfejl vises her -->
+		<!-- Server/validation errors displayed here -->
 		<div class="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
 			{error}
 		</div>
@@ -73,7 +73,7 @@
 			error = '';
 			return async ({ result, update }) => {
 				if (result.type === 'success') {
-					// Fortæl forælderen at projektet blev opdateret (så den kan invalidate/reload)
+					// Tell parent that project was updated (so it can invalidate/reload)
 					dispatch('projectUpdated');
 					closeModal();
 				} else if (result.type === 'failure') {
@@ -81,7 +81,7 @@
 					error = d?.error || 'Failed to update project';
 				}
 				loading = false;
-				// Opdater siden hvis nødvendigt (holder data i sync)
+				// Update page if necessary (keeps data in sync)
 				await update();
 			};
 		}}
@@ -116,7 +116,7 @@
 			></textarea>
 		</label>
 
-		<!-- Statusvælger -->
+		<!-- Status selector -->
 		<label class="block">
 			<span class="font-medium text-gray-700">Status</span>
 			<select

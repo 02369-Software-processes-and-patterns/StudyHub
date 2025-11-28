@@ -1,14 +1,9 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
-	import Modal from './Modal.svelte';
-
-	type Member = {
-		id: string;
-		name: string;
-		email: string;
-		role: 'Owner' | 'Admin' | 'Member';
-	};
+	import Modal from '../Modal.svelte';
+	import { getTomorrowDatetime } from '$lib/utility/date';
+	import type { Member } from '$lib/types';
 
 	export let isOpen = false;
 	export let members: Member[] = [];
@@ -22,9 +17,7 @@
 
 	// Set default deadline to tomorrow
 	$: if (isOpen && !deadline) {
-		const now = Date.now();
-		const tomorrow = new Date(now + 24 * 60 * 60 * 1000);
-		deadline = tomorrow.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:MM
+		deadline = getTomorrowDatetime();
 	}
 
 	function closeModal() {

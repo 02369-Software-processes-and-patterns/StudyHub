@@ -1,30 +1,22 @@
 <script lang="ts">
 	import ListCard from './ListCard.svelte';
 	import EmptyState from './EmptyState.svelte';
-	import Modal from '../modal/Modal.svelte';
+	import DeleteConfirmationModal from '../modal/DeleteConfirmationModal.svelte';
 	import { createEventDispatcher } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
+	import type { CourseForList } from '$lib/types';
 
-	type Course = {
-		id: string | number;
-		name: string;
-		ects_points: number;
-		start_date?: string | null;
-		end_date?: string | null;
-		lecture_weekdays?: number[] | string | null;
-	};
-
-	export let courses: Course[] = [];
+	export let courses: CourseForList[] = [];
 	export let maxCourses: number | null = null; // null = show all courses
 	export let showViewAll: boolean = true;
 	export let showStartDate: boolean = true; // Control whether to show start date column
-	export let openEdit: ((course: Course) => void) | null = null;
+	export let openEdit: ((course: CourseForList) => void) | null = null;
 
 	const dispatch = createEventDispatcher<{ delete: string | number }>();
 
-	let isDeleting: Record<string | number, boolean> = {};
 	let deleteModalOpen = false;
-	let courseToDelete: Course | null = null;
+	let courseToDelete: CourseForList | null = null;
+	let isDeletingCurrent = false;
 	let deleteError = '';
 
 	// Sort courses by name and limit if maxCourses is set
@@ -44,21 +36,23 @@
 		});
 	}
 
-	function openDeleteModal(course: Course) {
+	function openDeleteModal(course: CourseForList) {
 		courseToDelete = course;
 		deleteModalOpen = true;
+		deleteError = '';
 	}
 
 	function closeDeleteModal() {
 		deleteModalOpen = false;
 		courseToDelete = null;
 		deleteError = '';
+		isDeletingCurrent = false;
 	}
 
 	async function confirmDelete() {
 		if (!courseToDelete) return;
 
-		isDeleting[courseToDelete.id] = true;
+		isDeletingCurrent = true;
 		deleteError = '';
 
 		try {
@@ -71,9 +65,9 @@
 			});
 
 			if (response.ok) {
+				const deletedId = courseToDelete.id;
 				closeDeleteModal();
-				dispatch('delete', courseToDelete.id);
-				// Refresh the page data
+				dispatch('delete', deletedId);
 				await invalidateAll();
 			} else {
 				deleteError = 'Failed to delete course. Please try again.';
@@ -82,9 +76,7 @@
 			console.error('Error deleting course:', err);
 			deleteError = 'An error occurred while deleting the course. Please try again.';
 		} finally {
-			if (courseToDelete) {
-				isDeleting[courseToDelete.id] = false;
-			}
+			isDeletingCurrent = false;
 		}
 	}
 </script>
@@ -160,41 +152,17 @@
 								<button
 									type="button"
 									on:click={() => openDeleteModal(course)}
-									disabled={isDeleting[course.id]}
-									class="inline-flex h-6 w-6 items-center justify-center rounded text-red-600 transition hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+									class="inline-flex h-6 w-6 items-center justify-center rounded text-red-600 transition hover:bg-red-50 hover:text-red-700"
 									title="Delete course"
 									aria-label="Delete course"
 								>
-									{#if isDeleting[course.id]}
-										<svg
-											class="h-4 w-4 animate-spin"
-											fill="none"
-											stroke="currentColor"
-											viewBox="0 0 24 24"
-										>
-											<circle
-												class="opacity-25"
-												cx="12"
-												cy="12"
-												r="10"
-												stroke="currentColor"
-												stroke-width="4"
-											></circle>
-											<path
-												class="opacity-75"
-												fill="currentColor"
-												d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-											></path>
-										</svg>
-									{:else}
-										<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-											<path
-												fill-rule="evenodd"
-												d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-												clip-rule="evenodd"
-											/>
-										</svg>
-									{/if}
+									<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+										<path
+											fill-rule="evenodd"
+											d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+											clip-rule="evenodd"
+										/>
+									</svg>
 								</button>
 							</td>
 						</tr>
@@ -207,47 +175,13 @@
 	<EmptyState title="No courses yet" description="Add your first course to get started" />
 {/if}
 
-<Modal
+<DeleteConfirmationModal
 	bind:isOpen={deleteModalOpen}
-	title="Delete Course"
-	maxWidth="max-w-sm"
+	itemType="Course"
+	itemName={courseToDelete?.name ?? ''}
+	warningMessage="This action will also delete all tasks associated with this course. This cannot be undone."
+	isDeleting={isDeletingCurrent}
+	errorMessage={deleteError}
+	on:confirm={confirmDelete}
 	on:close={closeDeleteModal}
->
-	{#if courseToDelete}
-		{#if deleteError}
-			<div class="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
-				{deleteError}
-			</div>
-		{/if}
-
-		<div class="space-y-4">
-			<p class="text-gray-600">
-				Are you sure you want to delete <span class="font-semibold text-gray-900"
-					>"{courseToDelete.name}"</span
-				>?
-			</p>
-			<p class="text-sm text-gray-500">
-				This action will also delete all tasks associated with this course. This cannot be undone.
-			</p>
-		</div>
-
-		<div class="flex gap-3 border-t border-gray-200 pt-6">
-			<button
-				type="button"
-				on:click={closeDeleteModal}
-				disabled={Object.values(isDeleting).some(Boolean)}
-				class="flex-1 rounded-md border border-gray-300 px-4 py-2 font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-			>
-				Cancel
-			</button>
-			<button
-				type="button"
-				on:click={confirmDelete}
-				disabled={Object.values(isDeleting).some(Boolean)}
-				class="flex-1 rounded-md bg-red-600 px-4 py-2 font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-			>
-				{Object.values(isDeleting).some(Boolean) ? 'Deleting...' : 'Delete Course'}
-			</button>
-		</div>
-	{/if}
-</Modal>
+/>

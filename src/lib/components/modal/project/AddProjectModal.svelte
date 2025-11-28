@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { createEventDispatcher } from 'svelte';
-	import Modal from './Modal.svelte';
+	import Modal from '../Modal.svelte';
+	import type { CourseOption, FailureData } from '$lib/types';
 
 	const dispatch = createEventDispatcher();
 
-	export let showModal = false;
-	export let courses: Array<{ id: string; name: string }> = [];
+	export let isOpen = false;
+	export let courses: CourseOption[] = [];
 
 	let name = '';
 	let description = '';
@@ -90,7 +91,7 @@
 	}
 
 	function closeModal() {
-		showModal = false;
+		isOpen = false;
 		name = '';
 		description = '';
 		course_id = '';
@@ -103,7 +104,7 @@
 	}
 </script>
 
-<Modal bind:isOpen={showModal} title="Create New Project" on:close={closeModal}>
+<Modal bind:isOpen title="Create New Project" on:close={closeModal}>
 	{#if error}
 		<div class="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
 			Error: {error}
@@ -120,7 +121,6 @@
 					closeModal();
 					dispatch('projectAdded');
 				} else if (result.type === 'failure') {
-					type FailureData = { error?: string };
 					error = (result.data as FailureData | undefined)?.error || 'An error occurred';
 				}
 				loading = false;

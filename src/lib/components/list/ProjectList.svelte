@@ -1,23 +1,12 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { enhance } from '$app/forms'; // Håndtere form submission uden reload
+	import { enhance } from '$app/forms'; // Handle form submission without reload
 	import ListCard from './ListCard.svelte';
+	import type { ProjectForList, ProjectStatus, CourseRef } from '$lib/types';
 
-	type ProjectStatus = 'planning' | 'active' | 'on-hold' | 'completed' | 'archived';
-	type CourseRef = { id: string | number; name: string };
-	type Project = {
-		id: string | number;
-		name: string;
-		description: string;
-		status: ProjectStatus;
-		created_at?: string;
-		course?: CourseRef | null;
-		role?: string;
-	};
-
-	export let projects: Project[] = [];
+	export let projects: ProjectForList[] = [];
 	export let showViewAll: boolean = true;
-	// Mulighed for at begrænse antal projekter (f.eks. på dashboard)
+	// Option to limit number of projects (e.g., on dashboard)
 	export let maxProjects: number | null = null;
 
 	type StatusFilter = ProjectStatus | 'all';
@@ -61,11 +50,11 @@
 		}
 	}
 
-	const isCompletedProject = (p: Project) => p.status === 'completed';
-	const isActiveProject = (p: Project) => p.status === 'active';
-	const isOnHoldProject = (p: Project) => p.status === 'on-hold';
+	const isCompletedProject = (p: ProjectForList) => p.status === 'completed';
+	const isActiveProject = (p: ProjectForList) => p.status === 'active';
+	const isOnHoldProject = (p: ProjectForList) => p.status === 'on-hold';
 
-	function getStatusClass(project: Project) {
+	function getStatusClass(project: ProjectForList) {
 		if (isCompletedProject(project)) return 'bg-green-100 text-green-800';
 		if (isActiveProject(project)) return 'bg-blue-100 text-blue-800';
 		if (isOnHoldProject(project)) return 'bg-yellow-100 text-yellow-800';
@@ -74,7 +63,7 @@
 		return 'bg-gray-100 text-gray-800';
 	}
 
-	function getRowClass(project: Project) {
+	function getRowClass(project: ProjectForList) {
 		if (isCompletedProject(project)) return 'bg-green-50';
 		if (isActiveProject(project)) return 'bg-blue-50';
 		if (isOnHoldProject(project)) return 'bg-yellow-50';
@@ -93,7 +82,7 @@
 		return matchesName && matchesStatus && matchesCourse;
 	});
 
-	// 2) Sortering (nyeste først)
+	// 2) Sorting (newest first)
 	$: sortedProjects = (() => {
 		const sorted = [...filteredProjects].sort((a, b) => {
 			const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
@@ -106,7 +95,7 @@
 
 	$: totalProjects = projects.length;
 
-	// Håndter klik på rækken
+	// Handle row click
 	function handleRowClick(projectId: string | number) {
 		goto(`/project/${projectId}`);
 	}

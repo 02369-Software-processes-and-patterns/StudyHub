@@ -1,23 +1,12 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
 	import { enhance } from '$app/forms';
-	import Modal from './Modal.svelte';
-
-	type Member = {
-		id: string;
-		name: string;
-		email: string;
-		role: 'Owner' | 'Admin' | 'Member';
-	};
+	import Modal from '../Modal.svelte';
+	import { extractDatetimeFromISO } from '$lib/utility/date';
+	import type { Member, ProjectTaskForEdit, FailureData } from '$lib/types';
 
 	export let isOpen = false;
-	export let task: {
-		id: string | number;
-		name: string;
-		effort_hours?: number | null;
-		deadline?: string | null;
-		assignee?: Member | null;
-	} | null = null;
+	export let task: ProjectTaskForEdit | null = null;
 	export let members: Member[] = [];
 
 	const dispatch = createEventDispatcher();
@@ -36,7 +25,7 @@
 		formData = {
 			name: task.name ?? '',
 			effort_hours: task.effort_hours ?? 1,
-			deadline: task.deadline ? task.deadline.substring(0, 16) : '',
+			deadline: extractDatetimeFromISO(task.deadline),
 			user_id: task.assignee?.id ?? ''
 		};
 	}
@@ -64,7 +53,6 @@
 					dispatch('taskUpdated');
 					closeModal();
 				} else if (result.type === 'failure') {
-					type FailureData = { error?: string };
 					errorMessage = (result.data as FailureData | undefined)?.error ?? 'Unknown error';
 				}
 				await update();
