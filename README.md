@@ -2,37 +2,53 @@
 
 Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
 
-## Creating a project
-
-If you're seeing this, you've probably already done this step. Congrats!
+## Install guide
 
 ```sh
 # create a new project in the current directory
-npx sv create
+# StudyHub — Install & Run Guide
 
-# create a new project in my-app
-npx sv create my-app
+This repository contains the StudyHub SvelteKit application.
+
+**Quick start:** follow the steps below to get the project running locally.
+
+**Prerequisites**
+- **Node:** v18 or newer recommended.
+- **Git:** for cloning the repository.
+- **Package manager:** `npm` (bundled with Node) or `pnpm`/`yarn` if preferred.
+
+**Clone the repository**
+```
+git clone https://github.com/02369-Software-processes-and-patterns/StudyHub-2.0.git
+cd StudyHub-2.0
 ```
 
-## Developing
+**Install dependencies**
+```
+npm install
+```
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+**Environment variables**
+Create a `.env` file in the project root (or use `.env.local`) with your Supabase credentials. The app expects these public keys as static public env vars:
 
-```sh
+```
+PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-anon-key
+```
+
+**Run the app in development**
+```
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+```
+Open the address shown in the terminal (typically `http://localhost:5173/` or the URL printed by `vite`).
 ```
 
-## Building
+**Tests & tooling**
+- Run unit tests: `npm run test` (runs Vitest unit suite).
+- Run lint checks: `npm run lint`.
+- Format code: `npm run format`.
 
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+**Helpful files and locations**
+- Supabase config: `supabase/config.toml`.
+- Migrations: `supabase/migrations/`.
+- Server hooks (Supabase client setup): `src/hooks.server.ts`.
