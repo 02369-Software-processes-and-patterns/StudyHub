@@ -2,9 +2,6 @@
 
 Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
 
-## Install guide
-
-# create a new project in the current directory
 # StudyHub — Install & Run Guide
 
 This repository contains the StudyHub SvelteKit application.
