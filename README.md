@@ -4,7 +4,6 @@ Everything you need to build a Svelte project, powered by [`sv`](https://github.
 
 ## Install guide
 
-```sh
 # create a new project in the current directory
 # StudyHub — Install & Run Guide
 
@@ -19,8 +18,8 @@ This repository contains the StudyHub SvelteKit application.
 
 **Clone the repository**
 ```
-git clone https://github.com/02369-Software-processes-and-patterns/StudyHub-2.0.git
-cd StudyHub-2.0
+git clone https://github.com/02369-Software-processes-and-patterns/StudyHub.git
+cd StudyHub
 ```
 
 **Install dependencies**
@@ -29,20 +28,20 @@ npm install
 ```
 
 **Environment variables**
-Create a `.env` file in the project root (or use `.env.local`) with your Supabase credentials. The app expects these public keys as static public env vars:
+Create a `.env.local` file in the project root with your Supabase credentials. The app expects these public keys as static public env vars:
 
 ```
 PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-anon-key
 ```
+The vars can be found in the project report under the demonstration section.
 
 **Run the app in development**
 ```
 npm run dev
 ```
-Open the address shown in the terminal (typically `http://localhost:5173/` or the URL printed by `vite`).
+Open the address shown in the terminal (typically`http://localhost:5173/` or the URL printed by `vite`).
 ```
-
 **Tests & tooling**
 - Run unit tests: `npm run test` (runs Vitest unit suite).
 - Run lint checks: `npm run lint`.
